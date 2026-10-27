@@ -1,0 +1,10 @@
+# Table 4. Speed and memory (measured; RTX PRO 6000 Blackwell Max-Q 96 GB, Threadripper PRO 7955WX 16 cores)
+
+| backend | one tile, 90.5 M points (s) | one tile, 48.3 M points (s) | peak GPU (GiB) | peak RAM (GiB) | throughput (s per tile, workers) |
+|---|---|---|---|---|---|
+| cupy | 5.21 | 3.61 | 25.37 | 2.32 | 4.40 (1); 1.71 (4); 1.33 (12) |
+| torch-cuda | 5.09 | 3.4 | 24.34 | 2.88 | 1.48 (12) |
+| torch-cuda32 | 18.17 | 10.94 | 17.84 | 10.39 | 4.56 (12) |
+| numpy | 50.62 | 30.08 | – | 25.71 | 39.80 (1); 16.47 (4); 13.41 (8); 9.63 (16) |
+| torch-cpu | 45.45 | 27.56 | – | 26.7 | 12.42 (16) |
+| lidR + lidRmetrics (R) | 230.87 | 179.44 | – | 9.6 | 30.52 (8) |

@@ -1,0 +1,21 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+build/
+dist/
+
+# point clouds of the Kanagawa validation (not redistributed; rebuilt by validation/make_*.py)
+validation/data/*.laz
+validation/data/*.las
+# large intermediate outputs
+validation/backend_compare/snapshot/
+validation/par/*
+!validation/par/lidr_par.log
+validation/bench/*.parquet
+validation/ref/*.tif
+validation/ref_full/*.tif
+validation/ref/*.other.log
+validation/ref_full/*.other.log
+docs/data/mb_*.parquet
+tests/data/ref/*.log

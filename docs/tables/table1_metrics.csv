@@ -1,0 +1,60 @@
+metric,package,definition,points used
+zq20,lidRmetrics 0.1.5,20th percentile of heights > 0.5 m (type 7),heights > 0.5 m (voxels: rounded z > 0.5; rumple: all points)
+zcv,lidRmetrics 0.1.5,coefficient of variation of heights (%),heights > 0.5 m (voxels: rounded z > 0.5; rumple: all points)
+CRR,lidRmetrics 0.1.5,canopy relief ratio (mean − min) / (max − min),heights > 0.5 m (voxels: rounded z > 0.5; rumple: all points)
+zentropy,lidRmetrics 0.1.5,"Shannon entropy of 1 m layers, normalized",heights > 0.5 m (voxels: rounded z > 0.5; rumple: all points)
+zpcum7,lidRmetrics 0.1.5,cumulative % of points in the lower 7 of 10 height slices,heights > 0.5 m (voxels: rounded z > 0.5; rumple: all points)
+zpcum9,lidRmetrics 0.1.5,"as zpcum7, 9 slices",heights > 0.5 m (voxels: rounded z > 0.5; rumple: all points)
+pz_above_30,lidRmetrics 0.1.5,% of points above 30 m,heights > 0.5 m (voxels: rounded z > 0.5; rumple: all points)
+L4,lidRmetrics 0.1.5,4th L-moment,heights > 0.5 m (voxels: rounded z > 0.5; rumple: all points)
+Lskew,lidRmetrics 0.1.5,L-skewness,heights > 0.5 m (voxels: rounded z > 0.5; rumple: all points)
+Lkurt,lidRmetrics 0.1.5,L-kurtosis,heights > 0.5 m (voxels: rounded z > 0.5; rumple: all points)
+lad_max,lidRmetrics 0.1.5,"max leaf area density (lidR::LAD, dz 1 m, k 0.5, z0 2 m)",heights > 0.5 m (voxels: rounded z > 0.5; rumple: all points)
+lad_mean,lidRmetrics 0.1.5,mean LAD,heights > 0.5 m (voxels: rounded z > 0.5; rumple: all points)
+lad_cv,lidRmetrics 0.1.5,coefficient of variation of LAD,heights > 0.5 m (voxels: rounded z > 0.5; rumple: all points)
+p_single,lidRmetrics 0.1.5,% single returns,heights > 0.5 m (voxels: rounded z > 0.5; rumple: all points)
+p_last,lidRmetrics 0.1.5,% last returns,heights > 0.5 m (voxels: rounded z > 0.5; rumple: all points)
+ratio_last_first,lidRmetrics 0.1.5,last / first returns,heights > 0.5 m (voxels: rounded z > 0.5; rumple: all points)
+OpenGapSpace,lidRmetrics 0.1.5,Lefsky open gap voxels (%),heights > 0.5 m (voxels: rounded z > 0.5; rumple: all points)
+ClosedGapSpace,lidRmetrics 0.1.5,Lefsky closed gap voxels (%),heights > 0.5 m (voxels: rounded z > 0.5; rumple: all points)
+Euphotic,lidRmetrics 0.1.5,Lefsky euphotic voxels (%),heights > 0.5 m (voxels: rounded z > 0.5; rumple: all points)
+Oligophotic,lidRmetrics 0.1.5,Lefsky oligophotic voxels (%),heights > 0.5 m (voxels: rounded z > 0.5; rumple: all points)
+vzsd,lidRmetrics 0.1.5,SD of normalized voxel height histogram,heights > 0.5 m (voxels: rounded z > 0.5; rumple: all points)
+vzcv,lidRmetrics 0.1.5,CV of normalized voxel height histogram,heights > 0.5 m (voxels: rounded z > 0.5; rumple: all points)
+kde_peaks_count,lidRmetrics 0.1.5,"peaks of density(z, bw = 2)",heights > 0.5 m (voxels: rounded z > 0.5; rumple: all points)
+rumple,lidRmetrics 0.1.5,3D / 2D area of the Delaunay surface of highest points per 1 m,heights > 0.5 m (voxels: rounded z > 0.5; rumple: all points)
+tree_n,lidR 4.3.3,"tree tops in the cell (lmf, ws 2.5 + 0.15 h, 3–8 m, hmin 5)","canopy raster 0.5 m, p2r(subcircle 0.15) + knnidw fill"
+tree_h_mean,lidR 4.3.3,mean tree height,"canopy raster 0.5 m, p2r(subcircle 0.15) + knnidw fill"
+tree_h_sd,lidR 4.3.3,SD of tree heights,"canopy raster 0.5 m, p2r(subcircle 0.15) + knnidw fill"
+tree_h_cv,lidR 4.3.3,CV of tree heights,"canopy raster 0.5 m, p2r(subcircle 0.15) + knnidw fill"
+tree_h_max,lidR 4.3.3,max tree height,"canopy raster 0.5 m, p2r(subcircle 0.15) + knnidw fill"
+tree_h_gini,lidR 4.3.3,Gini coefficient of tree heights,"canopy raster 0.5 m, p2r(subcircle 0.15) + knnidw fill"
+tree_h_shannon,lidR 4.3.3,Shannon index of 2 m height classes,"canopy raster 0.5 m, p2r(subcircle 0.15) + knnidw fill"
+crown_m2_mean,lidR 4.3.3,mean crown area (dalponte2016),"canopy raster 0.5 m, p2r(subcircle 0.15) + knnidw fill"
+crown_m2_sd,lidR 4.3.3,SD of crown area,"canopy raster 0.5 m, p2r(subcircle 0.15) + knnidw fill"
+leafr_lai,leafR 0.3.5,"LAI = sum of LAD (MacArthur–Horn on 1 m return slices, k = 1)","all points of the cell, z < 0 set to 0"
+leafr_lahv,leafR 0.3.5,leaf area height volume,"all points of the cell, z < 0 set to 0"
+leafr_lahv_laiw,leafR 0.3.5,LAHV weighted by LAI,"all points of the cell, z < 0 set to 0"
+leafr_lahv_hw,leafR 0.3.5,LAHV weighted by height,"all points of the cell, z < 0 set to 0"
+leafr_lahv_laiw_hw,leafR 0.3.5,LAHV weighted by LAI and height,"all points of the cell, z < 0 set to 0"
+leafr_fhd,leafR 0.3.5,foliage height diversity of the relative LAD profile,"all points of the cell, z < 0 set to 0"
+leafr_fhd_even,leafR 0.3.5,FHD evenness,"all points of the cell, z < 0 set to 0"
+leafr_gs,leafR 0.3.5,Gini–Simpson index of the relative LAD profile,"all points of the cell, z < 0 set to 0"
+leafr_gs_even,leafR 0.3.5,Gini–Simpson evenness,"all points of the cell, z < 0 set to 0"
+leafr_gc,leafR 0.3.5,Gini coefficient of heights ≥ 1 m,"all points of the cell, z < 0 set to 0"
+pfs_pai,PyForestScan 0.3.6,"plant area index above 1 m (PAD, k = 1)",points with z ≥ 0
+pfs_cover,PyForestScan 0.3.6,"canopy cover above 2 m, 1 − exp(−0.5 PAI)",points with z ≥ 0
+pfs_fhd,PyForestScan 0.3.6,entropy of 1 m voxel return counts,points with z ≥ 0
+enl,forestr 2.0.2,"effective number of layers, 1 / Σ p², filled 1 m voxels",filled 1 m voxels (lidRmetrics voxelization)
+gap_frac,ForestGapR 0.1.7,share of canopy pixels in gaps,"canopy raster ≤ 10 m, 1–10⁴ m²"
+gap_n,ForestGapR 0.1.7,gaps touching the cell,"canopy raster ≤ 10 m, 1–10⁴ m²"
+gap_area_mean,ForestGapR 0.1.7,mean full area of those gaps (m²),"canopy raster ≤ 10 m, 1–10⁴ m²"
+clz_chm,canopyLazR 2.0,max − min elevation per column,raw elevations of the file; Tukey 1.5 IQR filter; own grid
+clz_ground,canopyLazR 2.0,lowest point per column,raw elevations of the file; Tukey 1.5 IQR filter; own grid
+clz_vertical_sd_lad,canopyLazR 2.0,SD of LAD above ht.cut (rounded to 4 digits),raw elevations of the file; Tukey 1.5 IQR filter; own grid
+clz_rugosity,canopyLazR 2.0,SD of vertical SD of LAD in a 3 × 3 window (within-canopy rugosity),raw elevations of the file; Tukey 1.5 IQR filter; own grid
+clz_filled_ratio,canopyLazR 2.0,share of filled voxels above ht.cut,raw elevations of the file; Tukey 1.5 IQR filter; own grid
+clz_porosity_ratio,canopyLazR 2.0,share of empty voxels,raw elevations of the file; Tukey 1.5 IQR filter; own grid
+clz_max_lad,canopyLazR 2.0,max LAD in the column,raw elevations of the file; Tukey 1.5 IQR filter; own grid
+clz_max_lad_ht,canopyLazR 2.0,voxel height of max LAD,raw elevations of the file; Tukey 1.5 IQR filter; own grid
+clz_toc_rugosity,canopyLazR 2.0,"top-of-canopy rugosity volume, 3 × 3 window",raw elevations of the file; Tukey 1.5 IQR filter; own grid

@@ -1,0 +1,8 @@
+dataset,extent,points,points per m²,use
+clip 09LC9542,250 × 250 m (10 × 10 cells),"3,255,314",52.1,"lidR / lidRmetrics, leafR, PyForestScan, forestr, ForestGapR"
+clip 09MC0523,250 × 250 m (10 × 10 cells),"4,127,685",66.0,"lidR / lidRmetrics, leafR, PyForestScan, forestr, ForestGapR"
+clip 09LC9511,250 × 250 m (10 × 10 cells),"7,418,157",118.7,"lidR / lidRmetrics, leafR, PyForestScan, forestr, ForestGapR"
+clip 09LC9423,250 × 250 m (10 × 10 cells),"8,300,828",132.8,"lidR / lidRmetrics, leafR, PyForestScan, forestr, ForestGapR"
+full tile 09LC9423,1000 × 750 m (40 × 30 cells),"90,497,852",120.7,same + speed and memory
+full tile 09MC0523,1000 × 750 m (40 × 30 cells),"48,280,215",64.4,same + speed and memory
+raw clips (4),"250 × 250 m, elevations",3.3–8.3 M,52–133,canopyLazR (10 m and 5 m grids)

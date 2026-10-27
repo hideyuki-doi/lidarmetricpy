@@ -1,0 +1,15 @@
+mesh,tag,backend,max_memory_gb,host_memory_gb,points,seconds,blocks,passes,peak_device_gb,peak_host_gb
+09LC9423,cupy_full,cupy,None,None,90497852,50.1,1,1,24.14,19.57
+09LC9423,cupy_8gb,cupy,8.0,None,90497852,47.9,3,1,8.51,8.59
+09LC9423,cupy_2gb,cupy,2.0,None,90497852,43.4,14,1,2.21,4.29
+09LC9423,cupy_host4,cupy,None,4.0,90497852,50.3,1,1,24.14,19.54
+09LC9423,torchcuda,torch-cuda,None,None,90497852,47.6,1,1,24.71,18.12
+09LC9423,torchcuda32,torch-cuda32,None,None,90497852,53.0,1,1,21.26,18.13
+09LC9423,numpy,numpy,None,None,90497852,109.7,1,1,0.00,33.41
+09MC0523,cupy_full,cupy,None,None,48280215,27.6,1,1,15.70,10.62
+09MC0523,cupy_8gb,cupy,8.0,None,48280215,25.9,2,1,10.83,7.64
+09MC0523,cupy_2gb,cupy,2.0,None,48280215,23.9,7,1,2.49,3.42
+09MC0523,cupy_host4,cupy,None,4.0,48280215,26.9,1,1,15.70,10.62
+09MC0523,torchcuda,torch-cuda,None,None,48280215,26.8,1,1,14.90,10.41
+09MC0523,torchcuda32,torch-cuda32,None,None,48280215,30.5,1,1,12.77,10.39
+09MC0523,numpy,numpy,None,None,48280215,62.4,1,1,0.00,19.40

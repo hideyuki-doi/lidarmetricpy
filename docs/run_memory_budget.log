@@ -1,0 +1,14 @@
+{'backend': 'cupy', 'max_memory_gb': None, 'host_memory_gb': None, 'seconds': 5.2, 'path': 'device', 'blocks': 1, 'passes': 1, 'peak_gpu_gb': 25.37, 'peak_rss_gb': 2.22, 'max_abs_diff_vs_unlimited': 0.0}
+{'backend': 'cupy', 'max_memory_gb': 16.0, 'host_memory_gb': None, 'seconds': 5.24, 'path': 'device', 'blocks': 3, 'passes': 1, 'peak_gpu_gb': 12.62, 'peak_rss_gb': 2.22, 'max_abs_diff_vs_unlimited': 0.0}
+{'backend': 'cupy', 'max_memory_gb': 8.0, 'host_memory_gb': None, 'seconds': 5.33, 'path': 'device', 'blocks': 10, 'passes': 1, 'peak_gpu_gb': 6.39, 'peak_rss_gb': 2.22, 'max_abs_diff_vs_unlimited': 0.0}
+{'backend': 'cupy', 'max_memory_gb': 6.0, 'host_memory_gb': None, 'seconds': 5.53, 'path': 'device', 'blocks': 27, 'passes': 1, 'peak_gpu_gb': 4.58, 'peak_rss_gb': 2.22, 'max_abs_diff_vs_unlimited': 0.0}
+{'backend': 'cupy', 'max_memory_gb': 5.0, 'host_memory_gb': None, 'seconds': 5.98, 'path': 'device', 'blocks': 49, 'passes': 1, 'peak_gpu_gb': 4.4, 'peak_rss_gb': 1.87, 'max_abs_diff_vs_unlimited': 0.0}
+{'backend': 'cupy', 'max_memory_gb': 4.0, 'host_memory_gb': None, 'seconds': 9.54, 'path': 'host', 'blocks': 11, 'passes': 1, 'peak_gpu_gb': 3.03, 'peak_rss_gb': 4.5, 'max_abs_diff_vs_unlimited': 0.0}
+{'backend': 'cupy', 'max_memory_gb': 2.0, 'host_memory_gb': None, 'seconds': 9.64, 'path': 'host', 'blocks': 29, 'passes': 1, 'peak_gpu_gb': 1.29, 'peak_rss_gb': 4.5, 'max_abs_diff_vs_unlimited': 0.0}
+{'backend': 'cupy', 'max_memory_gb': None, 'host_memory_gb': 8.0, 'seconds': 5.15, 'path': 'device', 'blocks': 1, 'passes': 1, 'peak_gpu_gb': 25.37, 'peak_rss_gb': 2.22, 'max_abs_diff_vs_unlimited': 0.0}
+{'backend': 'cupy', 'max_memory_gb': 2.0, 'host_memory_gb': 4.0, 'seconds': 9.64, 'path': 'host', 'blocks': 29, 'passes': 1, 'peak_gpu_gb': 1.29, 'peak_rss_gb': 4.5, 'max_abs_diff_vs_unlimited': 0.0}
+{'backend': 'numpy', 'max_memory_gb': None, 'host_memory_gb': None, 'seconds': 50.71, 'path': 'host', 'blocks': 1, 'passes': 1, 'peak_gpu_gb': 0.0, 'peak_rss_gb': 25.69, 'max_abs_diff_vs_unlimited': 0.0}
+{'backend': 'numpy', 'max_memory_gb': None, 'host_memory_gb': 16.0, 'seconds': 47.36, 'path': 'host', 'blocks': 4, 'passes': 1, 'peak_gpu_gb': 0.0, 'peak_rss_gb': 9.22, 'max_abs_diff_vs_unlimited': 0.0}
+{'backend': 'numpy', 'max_memory_gb': None, 'host_memory_gb': 8.0, 'seconds': 46.8, 'path': 'host', 'blocks': 10, 'passes': 1, 'peak_gpu_gb': 0.0, 'peak_rss_gb': 5.23, 'max_abs_diff_vs_unlimited': 0.0}
+{'backend': 'numpy', 'max_memory_gb': None, 'host_memory_gb': 4.0, 'seconds': 39.72, 'path': 'host', 'blocks': 30, 'passes': 1, 'peak_gpu_gb': 0.0, 'peak_rss_gb': 3.98, 'max_abs_diff_vs_unlimited': 0.0}
+ALLDONE
