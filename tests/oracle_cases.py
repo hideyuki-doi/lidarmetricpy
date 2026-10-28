@@ -37,6 +37,9 @@ def cases():
     add("zmin2_no_voxel", [2.1, 2.2, 2.4], zmin=2.0)
     add("with_negative", [-0.5, 0.3, 1, 5, 9])
     add("all_low", [0.1, 0.2, 0.4])
+    add("at_zmin_only", [0.5, 0.5, 0.5, 0.5])                     # round(0.5) = 1 > zmin: voxels, no n
+    add("entropy_zmin_negative_zero", [0, 1, 2, 3], zmin=-0.5)     # metrics_dispersion: entropy of z > 0
+    add("entropy_zmin_negative", [-0.2, 1, 2, 3], zmin=-0.5)
     k = np.arange(1, 13, dtype=float)
     eps = np.array([1e-12, -1e-12, 1e-9, -1e-9, 1e-7, -1e-7, 2e-7, -2e-7, 0, 0, 5e-8, -5e-8])
     add("near_integers", np.concatenate([k + eps, rng.gamma(3, 3, 40) + 0.6]))

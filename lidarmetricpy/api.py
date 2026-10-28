@@ -171,9 +171,11 @@ def _read(source, grid, opt, rows_keep=None):
 
 
 def _dtm_window(dtm, grid):
-    """The DTM pixels covering the grid (plus one pixel), on the DTM's own pixel grid, as float64 with NaN
-    where the DTM has no data (nodata, mask, or outside the raster). Returns (array, x of the left edge,
-    y of the top edge, x resolution, y resolution); a point takes the value of the DTM pixel that contains it."""
+    """The DTM pixels covering the grid (plus one pixel), as float64 with NaN where the DTM has no data
+    (nodata, mask, or outside the raster). Returns (array, x and y of the DTM's own top-left corner, x and y
+    resolution, column and row of the window's first pixel in the DTM). A point takes the DTM pixel that
+    contains it: column floor((x - x_dtm) / res_x), row floor((y_dtm - y) / res_y) on the DTM's own grid (as
+    lidR), then shifted by the window's integer offset, so the grid origin never changes the pixel."""
     import rasterio
     from rasterio.windows import Window, from_bounds
     with rasterio.open(dtm) as s:
@@ -188,9 +190,8 @@ def _dtm_window(dtm, grid):
         if rr1 > rr0 and cc1 > cc0:
             d = s.read(1, window=Window(cc0, rr0, cc1 - cc0, rr1 - rr0), masked=True)
             a[rr0 - r0:rr1 - r0, cc0 - c0:cc1 - c0] = np.ma.filled(d.astype(np.float64), np.nan)
-        tr = s.window_transform(Window(c0, r0, c1 - c0, r1 - r0))
     a[a < -9000] = np.nan                     # undeclared nodata such as -9999
-    return a, tr.c, tr.f, tr.a, -tr.e
+    return a, t.c, t.f, t.a, -t.e, c0, r0
 
 
 # ------------------------------------------------------------------ planning
@@ -272,10 +273,12 @@ def _prepare_row(P, meta, grid, opt, dtm_a, ok=None):
     """Heights above ground and the keep mask for one row of cells (host, float64)."""
     x, y, z = _xyz(P, meta)
     if dtm_a is not None:
-        a, ax0, ay1, rx, ry = dtm_a
-        ri = np.clip(np.floor((ay1 - y) / ry).astype(np.int64), 0, a.shape[0] - 1)
-        ci = np.clip(np.floor((x - ax0) / rx).astype(np.int64), 0, a.shape[1] - 1)
-        z = z - a[ri, ci]
+        a, gx0, gy1, rx, ry, c0, r0 = dtm_a
+        ri = np.floor((gy1 - y) / ry).astype(np.int64) - r0
+        ci = np.floor((x - gx0) / rx).astype(np.int64) - c0
+        inw = (ri >= 0) & (ri < a.shape[0]) & (ci >= 0) & (ci < a.shape[1])
+        g = a[np.clip(ri, 0, a.shape[0] - 1), np.clip(ci, 0, a.shape[1] - 1)]
+        z = z - np.where(inw, g, np.nan)
     if ok is not None:
         return x, y, z, ok
     ok = np.isfinite(z) & (z > opt.zrange[0]) & (z < opt.zrange[1])
@@ -348,8 +351,9 @@ def _compute_tile(source, x0, y1, ncol, nrow, cell, dtm, B, gpu_memory_gb, cpu_m
     if device_path:
         stats["path"] = "device"
         stats["budget_points"] = block_pts
+        # LAZ is decoded in chunks that fit the RAM budget; the device works on slices that fit the GPU budget
         results, acc, npts = _device_tile(source, grid, replace(opt, chunk_points=chunk_pts), B, dtm_a, T,
-                                          block_pts)
+                                          block_pts, read_points=read_opt.chunk_points)
         stats.update(blocks=len(results), points=npts, passes=1, cells_over_budget=T.pop("cells_over_budget", 0))
         B.free()
         return _finish(results, acc, B, grid, opt, nrow, ncol, cell, stats, T, t0, verbose, return_trees)
@@ -656,7 +660,7 @@ def _spike_filter_dev(B, grid, opt, P):
     _keep(B, P, keep)
 
 
-def _device_tile(source, grid, opt, B, dtm_a, T, block_pts):
+def _device_tile(source, grid, opt, B, dtm_a, T, block_pts, read_points=None):
     """Whole tile on the device: decode LAZ chunks on the CPU, then coordinates, bounds, heights,
     filters, bbox and all metrics on the device. Returns (frames, canopy accumulator, n_points)."""
     import laspy
@@ -671,7 +675,7 @@ def _device_tile(source, grid, opt, B, dtm_a, T, block_pts):
     else:
         f = laspy.open(source, laz_backend=_laz_backend(opt))
         scale, offset = np.asarray(f.header.scales, np.float64), np.asarray(f.header.offsets, np.float64)
-        chunks = f.chunk_iterator(opt.chunk_points)
+        chunks = f.chunk_iterator(read_points or opt.chunk_points)   # RAM budget (decoding on the host)
     # Points are written straight into preallocated device buffers and filtered one array at a time, so the
     # whole tile is never held twice (no concatenate, no tuple of filtered copies). Values and order are
     # the same as filtering every array with the same mask at once.
@@ -722,15 +726,17 @@ def _device_tile(source, grid, opt, B, dtm_a, T, block_pts):
         return [], None, 0
     x, y, z = P[0], P[1], P[2]
     if dtm_a is not None:
-        a, ax0, ay1, rx, ry = dtm_a
+        a, gx0, gy1, rx, ry, c0, r0 = dtm_a
         ad = B.asarray(a).reshape(-1)
         step = max(1, opt.chunk_points)
         for s0 in range(0, pos, step):                         # in slices: bounded temporaries
             s1 = min(pos, s0 + step)
-            ri = B.clip(B.astype(B.floor(B.sdiv(ay1 - y[s0:s1], ry)), B.i64), 0, a.shape[0] - 1)
-            ci = B.clip(B.astype(B.floor(B.sdiv(x[s0:s1] - ax0, rx)), B.i64), 0, a.shape[1] - 1)
-            z[s0:s1] = z[s0:s1] - ad[ri * a.shape[1] + ci]
-            del ri, ci
+            ri = B.astype(B.floor(B.sdiv(gy1 - y[s0:s1], ry)), B.i64) - r0     # pixel on the DTM's own grid
+            ci = B.astype(B.floor(B.sdiv(x[s0:s1] - gx0, rx)), B.i64) - c0
+            inw = (ri >= 0) & (ri < a.shape[0]) & (ci >= 0) & (ci < a.shape[1])
+            g = ad[B.clip(ri, 0, a.shape[0] - 1) * a.shape[1] + B.clip(ci, 0, a.shape[1] - 1)]
+            z[s0:s1] = z[s0:s1] - B.where(inw, g, B.nan)
+            del ri, ci, inw, g
         del ad
     ok = B.isfinite(z) & (z > opt.zrange[0]) & (z < opt.zrange[1])
     del x, y, z

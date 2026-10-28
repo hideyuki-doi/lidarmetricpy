@@ -18,7 +18,7 @@ VAL = HERE.parent / "validation"
 sys.path.insert(0, str(HERE.parent))
 sys.path.insert(0, str(VAL))
 from lidarmetricpy import Options, canopylazr, compute_tile  # noqa: E402
-from refcheck import prepare_reference  # noqa: E402
+from refcheck import occupancy, prepare_reference  # noqa: E402
 
 OUT = HERE / "data"
 OUT.mkdir(exist_ok=True)
@@ -40,7 +40,8 @@ def main():
             ref = refs(refdir, c["mesh"])
             for backend in ("cupy", "torch-cuda", "numpy", "torch-cpu", "torch-cuda32"):
                 df = compute_tile(str(VAL / c["file"]), c["x0"], c["y1"], c["ncol"], c["nrow"], backend=backend, options=OPT)
-                m = prepare_reference(ref).merge(df, on=["x", "y"], how="outer", suffixes=("_ref", "_pcm"),
+                occ = occupancy(VAL / c["file"], c["x0"], c["y1"], c["ncol"], c["nrow"])
+                m = prepare_reference(ref, occ).merge(df, on=["x", "y"], how="outer", suffixes=("_ref", "_pcm"),
                                                  indicator=True)
                 m["dataset"], m["mesh"], m["backend"] = kind, c["mesh"], backend
                 rows.append(m)

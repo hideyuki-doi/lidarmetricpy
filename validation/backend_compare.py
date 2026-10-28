@@ -24,7 +24,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, os.environ.get("LIDARMETRICPY_PATH", str(HERE.parent)))
 from lidarmetricpy import Options, compute_tile, compute_tiles  # noqa: E402
 from compare import METRICS  # noqa: E402
-from refcheck import check  # noqa: E402
+from refcheck import check, occupancy  # noqa: E402
 
 OUT = HERE / "backend_compare"
 OUT.mkdir(exist_ok=True)
@@ -76,7 +76,9 @@ class Peak:
 
 def agreement(df, mesh):
     """(number of metrics equal in every cell, {metric: share of compared cells that are equal}) — strict."""
-    res = check(pd.read_csv(HERE / "ref_full" / f"{mesh}_cells.csv"), df, METRICS)
+    c = FULL[mesh]
+    occ = occupancy(HERE / c["file"], c["x0"], c["y1"], c["ncol"], c["nrow"])
+    res = check(pd.read_csv(HERE / "ref_full" / f"{mesh}_cells.csv"), df, METRICS, occ)
     worst = {r.metric: round(1 - (r.value_mismatch + r.class_mismatch) / max(1, r.n_finite + r.class_mismatch), 6)
              for r in res.itertuples() if not r.equal}
     return int(res.equal.sum()), worst
@@ -92,6 +94,7 @@ def single(backend, mesh, other=False):
         df, (chm, L, (rr, cc, area)) = compute_tile(str(HERE / c["file"]), c["x0"], c["y1"], 40, 30, backend=backend,
                                                     options=opt, return_trees=True)
         sec = time.time() - t
+    rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024 ** 2     # before the check reads the LAZ
     exact, worst = agreement(df, mesh)
     rt = pd.read_csv(HERE / "ref_full" / f"{mesh}_trees.csv")
     pt = pd.DataFrame({"x": L.xmin + (cc + 0.5) * L.res, "y": L.ymax - (rr + 0.5) * L.res, "a": area})
@@ -102,7 +105,7 @@ def single(backend, mesh, other=False):
         "path": st.get("path"),
         **{f"t_{k}": v for k, v in st["stage_seconds"].items()},
         "peak_device_gb": round(pk.peak / 1024 ** 3, 2),
-        "peak_rss_gb": round(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024 ** 2, 2),
+        "peak_rss_gb": round(rss, 2),
         "metrics_exact": exact, "metrics_total": len(METRICS), "not_exact": json.dumps(worst),
         "trees_ref": len(rt), "trees_matched": int((j._merge == "both").sum()),
         "crowns_equal": int((np.abs(j.crown_m2 - j.a) < 1e-9).sum())})

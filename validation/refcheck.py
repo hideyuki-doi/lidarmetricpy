@@ -1,35 +1,43 @@
 """Shared rules for comparing lidarmetricpy with the stored R / Python references (strict: lidarmetricpy.validate).
 
-- A reference cell whose lidRmetrics values are all NA had no point: lidR lists every raster cell,
-  lidarmetricpy only cells with points. Such cells are left out (they must then be absent from the result).
+- The cells that must be compared are the cells holding points, counted from the LAZ file itself
+  (lidarmetricpy.validate.occupied_cells), not guessed from NA values: lidR lists every raster cell, and a
+  metric can be NA in a cell with points.
 - The R tree summary has no row for a cell without trees: tree_n is 0 there.
 - Every other difference (missing or extra cells, NA / Inf pattern, values beyond 1e-6 relative) fails.
 """
 import sys
 from pathlib import Path
 
-import pandas as pd
+import laspy
+import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from lidarmetricpy.validate import compare_tables  # noqa: E402
+from lidarmetricpy.validate import compare_tables, occupied_cells  # noqa: E402
 
-LIDRMETRICS = ["zq20", "zcv", "CRR", "zentropy", "zpcum7", "zpcum9", "pz_above_30", "L4", "Lskew", "Lkurt",
-               "lad_max", "lad_mean", "lad_cv", "p_single", "p_last", "ratio_last_first", "OpenGapSpace",
-               "ClosedGapSpace", "Euphotic", "Oligophotic", "vzsd", "vzcv", "kde_peaks_count", "rumple"]
+HERE = Path(__file__).resolve().parent
 
 
-def prepare_reference(ref, cells_ref=None):
-    """Drop empty cells (judged on the lidRmetrics reference cells_ref, default ref itself) and set tree_n."""
-    base = ref if cells_ref is None else cells_ref
-    cols = [c for c in LIDRMETRICS + ["n"] if c in base.columns]
-    empty = base.loc[base[cols].isna().all(axis=1), ["x", "y"]]
-    out = ref.merge(empty.assign(_empty=True), on=["x", "y"], how="left")
-    out = out[out._empty.isna()].drop(columns="_empty")
+def occupancy(laz, x0, y1, ncol, nrow, cell=25.0):
+    las = laspy.read(str(laz))
+    return occupied_cells(np.asarray(las.x), np.asarray(las.y), x0, y1, ncol, nrow, cell)
+
+
+def prepare_reference(ref, occupied):
+    """The reference rows of the occupied cells, with tree_n = 0 where the R summary has no tree."""
+    out = ref.merge(occupied.assign(_occ=True), on=["x", "y"], how="inner").drop(columns="_occ")
     if "tree_n" in out:
         out.loc[out.tree_n.isna(), "tree_n"] = 0
     return out.reset_index(drop=True)
 
 
-def check(ref, got, metrics, cells_ref=None):
-    """compare_tables after prepare_reference; returns the per-metric table."""
-    return compare_tables(prepare_reference(ref, cells_ref), got, metrics)
+def check(ref, got, metrics, occupied):
+    """compare_tables on the occupied cells; returns the per-metric table."""
+    return compare_tables(prepare_reference(ref, occupied), got, metrics, occupied=occupied)
+
+
+def require(paths):
+    """Stop before any computation when a reference file is missing."""
+    missing = [str(p) for p in paths if not Path(p).exists()]
+    if missing:
+        sys.exit("missing reference files:\n  " + "\n  ".join(missing))

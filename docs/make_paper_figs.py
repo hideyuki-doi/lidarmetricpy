@@ -231,26 +231,37 @@ def fig_heatmap(cells, clz):
 
 
 # ------------------------------------------------------------------ figure 4: one tile time and stages
-def lidr_times(folder="ref_full"):
-    """lidR timings from /usr/bin/time in the logs: ref_full = metrics_set3, ref_subset = only the lidRmetrics
-    functions the 24 metrics need (validation/ref_lidr_subset.R)."""
+def lidr_times(variant="ref_lidr_subset"):
+    """lidR timings of validation/run_timing_lidr.sh (one R process per tile, nothing else running):
+    work = read_s + area_s + tree_s measured inside R (as compute_tile), whole = /usr/bin/time of the process
+    (start, package loading, reading, metrics, trees, writing). variant: ref_lidr_subset (only the lidRmetrics
+    functions the 24 metrics need) or ref_lidr (metrics_set3)."""
     out = {}
     for m in ("09LC9423", "09MC0523"):
-        txt = (VAL / folder / f"{m}.log").read_text(errors="ignore")
-        tot = float(re.search(r"([\d.]+) s (\d+) KB", txt).group(1))
-        rss = int(re.search(r"([\d.]+) s (\d+) KB", txt).group(2)) / 1024 ** 2
-        a = re.search(r"area_s ([\d.]+) tree_s ([\d.]+)", txt)
-        out[m] = {"seconds": tot, "metrics": float(a.group(1)), "trees": float(a.group(2)), "rss": rss}
+        txt = (VAL / "timing" / f"{variant}_{m}.log").read_text(errors="ignore")
+        whole, kb = re.search(r"([\d.]+) s (\d+) KB", txt).groups()
+        a = re.search(r"read_s ([\d.]+) area_s ([\d.]+) tree_s ([\d.]+)", txt)
+        rd, ar, tr = (float(v) for v in a.groups())
+        out[m] = {"seconds": rd + ar + tr, "whole": float(whole), "read": rd, "metrics": ar, "trees": tr,
+                  "rss": int(kb) / 1024 ** 2}
     return out
+
+
+def py_whole(backend, mesh):
+    """Whole-process time of validation/run_timing_py.sh (fresh Python: import, compute, save), or None."""
+    p = VAL / "timing" / f"py_{backend}_{mesh}.log"
+    if not p.exists():
+        return None
+    return float(re.search(r"([\d.]+) s (\d+) KB", p.read_text()).group(1))
 
 
 def fig_single(single):
     base = single[~single.other_packages.astype(bool)]
-    ld = lidr_times()
+    ld = lidr_times("ref_lidr")
     d = base[base.mesh == "09LC9423"].set_index("backend")
     order = ["cupy", "torch-cuda", "torch-cuda32", "numpy", "torch-cpu"]
     fig, axs = plt.subplots(1, 2, figsize=(7.1, 2.5), gridspec_kw={"width_ratios": [1, 1.1]})
-    ls_ = lidr_times("ref_subset")
+    ls_ = lidr_times("ref_lidr_subset")
     tot = [d.loc[b, "seconds"] for b in order] + [ls_["09LC9423"]["seconds"], ld["09LC9423"]["seconds"]]
     labs = [BLABEL[b].replace("\n", " ") for b in order] + ["lidR, 24 metrics (R, 1 core)",
                                                             "lidR, metrics_set3 (R, 1 core)"]
@@ -261,8 +272,8 @@ def fig_single(single):
         axs[0].text(v + 3, i, f"{v:.1f} s", va="center", fontsize=6.5)
     axs[0].set_yticks(y, labs, fontsize=6.5)
     axs[0].invert_yaxis()
-    axs[0].set_xlabel("seconds, one 90.5 M point tile")
-    axs[0].set_title("(a) Wall time, one process", loc="left")
+    axs[0].set_xlabel("seconds, one 90.5 M point tile (read + metrics + trees)")
+    axs[0].set_title("(a) Work time, one process", loc="left")
     axs[0].set_xlim(0, 270)
     axs[0].grid(axis="x", color=GRID, lw=0.6)
     stages = [("read + LAZ decode", "t_read", "#8c8a83"), ("prepare", "t_prepare", "#c9c7c0"),
@@ -439,27 +450,33 @@ def tables(res, cells, single, thr, mb):
     write_table(t3[["package", "backend", "equal", "cells", "max_rel_diff"]], "table3_agreement",
                 "Table 3. Agreement with the reference packages (all clip and full-tile cells; equal = every cell within "
                 "1e-6 relative and same NA pattern)")
-    ld = lidr_times()
+    ld, ls_ = lidr_times("ref_lidr"), lidr_times("ref_lidr_subset")
     s = single[~single.other_packages.astype(bool)]
     rows = []
     for b in ["cupy", "torch-cuda", "torch-cuda32", "numpy", "torch-cpu"]:
         r1 = s[(s.backend == b) & (s.mesh == "09LC9423")].iloc[-1]
         r2 = s[(s.backend == b) & (s.mesh == "09MC0523")].iloc[-1]
         t = thr[thr.backend == b].sort_values("workers")
-        rows.append({"backend": b, "one tile, 90.5 M points (s)": r1.seconds, "one tile, 48.3 M points (s)": r2.seconds,
+        w1, w2 = py_whole(b, "09LC9423"), py_whole(b, "09MC0523")
+        rows.append({"backend": b, "work, 90.5 M (s)": r1.seconds, "work, 48.3 M (s)": r2.seconds,
+                     "whole process, 90.5 M (s)": w1 if w1 is not None else "–",
+                     "whole process, 48.3 M (s)": w2 if w2 is not None else "–",
                      "peak GPU (GiB)": r1.peak_device_gb if r1.peak_device_gb > 0 else "–", "peak RAM (GiB)": r1.peak_rss_gb,
                      "throughput (s per tile, workers)": "; ".join(f"{v:.2f} ({int(w)})" for w, v in zip(t.workers, t.s_per_tile))})
     txt = (VAL / "par" / "lidr_par.log").read_text()
     lsec = float(re.search(r"\): ([\d.]+) s", txt).group(1)) / 8
-    ls_ = lidr_times("ref_subset")
-    rows.append({"backend": "lidR + lidRmetrics, 24 metrics (R)", "one tile, 90.5 M points (s)": ls_["09LC9423"]["seconds"],
-                 "one tile, 48.3 M points (s)": ls_["09MC0523"]["seconds"], "peak GPU (GiB)": "–",
-                 "peak RAM (GiB)": round(ls_["09LC9423"]["rss"], 1), "throughput (s per tile, workers)": "–"})
-    rows.append({"backend": "lidR + lidRmetrics, metrics_set3 (R)", "one tile, 90.5 M points (s)": ld["09LC9423"]["seconds"],
-                 "one tile, 48.3 M points (s)": ld["09MC0523"]["seconds"], "peak GPU (GiB)": "–",
-                 "peak RAM (GiB)": round(ld["09LC9423"]["rss"], 1), "throughput (s per tile, workers)": f"{lsec:.2f} (8)"})
+    for name, L_, thr_ in (("lidR + lidRmetrics, 24 metrics (R)", ls_, "–"),
+                           ("lidR + lidRmetrics, metrics_set3 (R)", ld, f"{lsec:.2f} (8)")):
+        rows.append({"backend": name, "work, 90.5 M (s)": round(L_["09LC9423"]["seconds"], 1),
+                     "work, 48.3 M (s)": round(L_["09MC0523"]["seconds"], 1),
+                     "whole process, 90.5 M (s)": L_["09LC9423"]["whole"], "whole process, 48.3 M (s)": L_["09MC0523"]["whole"],
+                     "peak GPU (GiB)": "–", "peak RAM (GiB)": round(L_["09LC9423"]["rss"], 1),
+                     "throughput (s per tile, workers)": thr_})
     write_table(pd.DataFrame(rows), "table4_speed",
-                "Table 4. Speed and memory (measured; RTX PRO 6000 Blackwell Max-Q 96 GB, Threadripper PRO 7955WX 16 cores)")
+                "Table 4. Speed and memory (measured; RTX PRO 6000 Blackwell Max-Q 96 GB, Threadripper PRO 7955WX 16 cores). "
+                "work = reading + metrics + trees inside one process (Python: after a warm-up call; R: read_s + area_s + "
+                "tree_s); whole process = start, imports / package loading, work and saving the cell table, tree tops "
+                "and canopy raster (/usr/bin/time, fresh process). lidR throughput: metrics_set3, 8 processes.")
     t5 = pd.DataFrame([
         ("lidR round_any uses C round() (halves away from zero)", "voxel indices, canopy raster extent", "C round emulated"),
         ("terra closes the right / bottom outer edge of a raster: points on it belong to the last column / row", "cell membership", "closed_edges=True (default)"),

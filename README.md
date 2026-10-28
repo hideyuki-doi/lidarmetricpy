@@ -61,9 +61,10 @@ The defaults clean the points before the metrics: heights outside `zrange = (-1,
 neither, so `Options.lidr()` (= `Options(spike_filter=False, zrange=(-inf, inf))`) is the setting to compare
 with lidR; the defaults may remove real trees taller than 60 m or isolated crown tops.
 
-With `dtm=`, heights are z minus the value of the DTM pixel that contains the point (north-up rasters; the
-window is read on the DTM's own pixel grid). Points where the DTM has no data (nodata value, mask, outside the
-raster) are dropped.
+With `dtm=`, heights are z minus the value of the DTM pixel that contains the point: column
+floor((x - x_dtm) / res) and row floor((y_dtm - y) / res) on the DTM's own grid, as lidR does (north-up
+rasters), whatever the origin of the metric grid. Points where the DTM has no data (nodata value, mask, outside
+the raster) are dropped.
 
 ## Grid
 
@@ -145,8 +146,11 @@ pytest            # ~20 s; GPU backends are skipped when their device cannot be 
   sparse clouds; host and device paths; the strict comparator; budgets.
 - tests/test_budgets.py: memory budgets, multi-pass reading and the device / host paths give identical values.
 
-Comparisons use `lidarmetricpy.validate.compare_tables`: unique cell keys, outer join (a missing or extra cell
-fails), the same NA / +Inf / -Inf pattern, then finite values within 1e-6 relative.
+Comparisons use `lidarmetricpy.validate.compare_tables`: unique cell keys; the cells that must be present are
+decided apart from the metric values (`occupied`, the cells holding points counted from the LAZ with
+`occupied_cells`), so a missing cell fails even when its metrics are NA; an extra cell fails; non-numeric
+values raise; the NA / +Inf / -Inf pattern must be equal, then finite values within 1e-6 relative; two empty
+tables give status "empty", not equal.
 
 ## Validation on real data (validation/, docs/)
 
@@ -171,26 +175,35 @@ paper are in docs/ (docs/make_paper_figs.py), with notes in Japanese in docs/pap
 ## Speed and memory
 
 Measured on an RTX PRO 6000 Blackwell Max-Q 96 GB and an AMD Threadripper PRO 7955WX (16 cores / 32 threads),
-lidRmetrics set + trees, on a frozen copy of the package (validation/backend_compare/). lidR was timed twice:
-with `metrics_set3` (111 outputs, validation/ref_lidr.R) and with only the lidRmetrics functions that the 24
-metrics need (validation/ref_lidr_subset.R; same 24 values). Both include reading and the tree workflow.
+lidRmetrics metrics + trees (`Options.lidr(other_packages=False)`), one tile per process, nothing else running.
+lidR was run twice with R 4.5.3: with `metrics_set3` (111 outputs, validation/ref_lidr.R) and with only the
+lidRmetrics functions the 24 metrics need (validation/ref_lidr_subset.R; same 24 values). Two intervals, the
+same on both sides (validation/run_timing_lidr.sh, run_timing_py.sh, backend_compare.py):
 
-| one tile, one process (90.5 M / 48.3 M points) | seconds | peak GPU GiB | peak RAM GiB |
-|---|---|---|---|
-| CuPy | 5.5 / 3.7 | 28 / 18 | 2.3 / 2.2 |
-| PyTorch CUDA | 5.5 / 3.7 | 25 / 15 | 2.9 / 2.9 |
-| PyTorch CUDA float32 (MPS-like) | 20.5 / 12.1 | 18 / 11 | 11.2 / 6.8 |
-| NumPy (CPU) | 53.5 / 31.2 | – | 24.4 / 14.3 |
-| PyTorch CPU | 47.5 / 27.5 | – | 25.5 / 15.4 |
-| lidR + lidRmetrics, 24 metrics (R, 1 core) | 205.2 / 155.8 | – | 9.6 / 5.3 |
-| lidR + lidRmetrics, metrics_set3 (R, 1 core) | 230.9 / 179.4 | – | 9.6 / 5.3 |
+- **work**: reading the LAZ, metrics and trees inside one process (Python: `compute_tile` after a warm-up call;
+  R: read_s + area_s + tree_s printed by the script).
+- **whole process**: start, imports / package loading, work, and saving the cell table, tree tops and canopy
+  raster (`/usr/bin/time`, fresh process; Python without a warm-up, so it includes loading compiled code).
+
+| one tile (90.5 M / 48.3 M points) | work (s) | whole process (s) | peak GPU GiB | peak RAM GiB |
+|---|---|---|---|---|
+| CuPy | 5.5 / 3.8 | 6.9 / 4.9 | 22 / 13 | 2.2 / 2.2 |
+| PyTorch CUDA | 5.5 / 3.8 | – | 22 / 13 | 2.9 / 2.9 |
+| PyTorch CUDA float32 (MPS-like) | 20.4 / 12.4 | – | 15 / 9 | 11.2 / 6.8 |
+| NumPy (CPU) | 53.4 / 31.2 | 54.4 / 32.4 | – | 23.0 / 13.8 |
+| PyTorch CPU | 48.6 / 29.0 | – | – | 23.6 / 14.2 |
+| lidR + lidRmetrics, 24 metrics (R, 1 core) | 165.7 / 133.9 | 205.3 / 156.2 | – | 9.6 / 5.3 |
+| lidR + lidRmetrics, metrics_set3 (R, 1 core) | 174.9 / 140.8 | 214.6 / 163.3 | – | 9.6 / 5.3 |
+
+For the same 24 metrics, CuPy is ~30 times faster than lidR in either interval (work 165.7 / 5.5 s, whole
+process 205.3 / 6.9 s), NumPy 3–4 times (165.7 / 53.4 s, 205.3 / 54.4 s).
 
 | many tiles | seconds per tile |
 |---|---|
-| CuPy, 1 / 4 / 12 workers | 4.61 / 1.75 / 1.43 |
+| CuPy, 1 / 4 / 12 workers | 4.59 / 1.72 / 1.44 |
 | PyTorch CUDA, 12 workers | 1.53 |
-| NumPy, 1 / 4 / 8 / 16 workers | 41.8 / 18.1 / 14.6 / 10.5 |
-| lidR (metrics_set3), 8 R processes | 30.5 |
+| NumPy, 1 / 4 / 8 / 16 workers | 41.8 / 18.5 / 14.6 / 10.4 |
+| lidR (metrics_set3, R 4.4.3), 8 R processes | 30.5 |
 
 lidR on all cores was not measured. On the GPU path the GPU work is ~1 s per dense tile; the rest is CPU
 work (LAZ decoding alone costs 23 CPU-seconds per dense tile and is the floor for throughput; the exact

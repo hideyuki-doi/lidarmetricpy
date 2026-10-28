@@ -38,12 +38,90 @@ def _rsum(B, a):
     return B.asarray(h.astype(B.to_numpy(a).dtype, copy=False))
 
 
+def _voxel_metrics(B, cell_all, z_all, vx_all, vy_all, ncell, zmin):
+    """Voxel metrics (metrics_voxels) and forestr ENL from the rounded heights of every point.
+    lidRmetrics::create_voxels rounds z first and then keeps round(z) > zmin, so a point at z = 0.5 is a voxel
+    at 1 m even though z > zmin is false: these metrics do not depend on the points above zmin."""
+    out = {}
+    # voxels (1 m) — Lefsky light classes and vertical voxel distribution
+    vz = B.astype(B.round_away(z_all), B.i64)
+    vk = B.astype(vz, B.f) > zmin
+    vox_names = ("OpenGapSpace", "ClosedGapSpace", "Euphotic", "Oligophotic", "vzsd", "vzcv")
+    enl = np.full(ncell, np.nan)
+    if not bool(B.item(B.sum(B.astype(vk, B.i64)) > 0)):       # no rounded voxel above zmin
+        for name in vox_names:
+            out[name] = B.full(ncell, B.nan)
+    else:
+        VZ0 = int(B.item(B.amin(vz[vk])))                        # key radix from the heights present
+        VZ = int(B.item(B.amax(vz[vk]))) - VZ0 + 1
+        VX = int(B.item(B.amax(vx_all))) + 2                      # voxel column offsets within a block
+        VY = int(B.item(B.amax(vy_all))) + 2
+        key = ((cell_all[vk] * VX + vx_all[vk]) * VY + vy_all[vk]) * VZ + (vz[vk] - VZ0)
+        key = B.sort(key)
+        keep = B.concatenate([B.full(1, True, dtype=B.bool), key[1:] != key[:-1]])
+        key = key[keep]
+        vzz = key % VZ + VZ0                                      # voxel height (m)
+        colk = key // VZ
+        vc = colk // VY // VX
+        # forestr::calc_enl on the filled voxels (z > zmin): 1 / sum over 1 m layers of (n_layer / n_filled)^2
+        venl = B.to_numpy(B.bincount(vc * VZ + (vzz - VZ0), minlength=ncell * VZ))
+        cnt_enl = venl.reshape(ncell, VZ).astype(np.float64)
+        tot_enl = np.cumsum(cnt_enl, 1)[:, -1]
+        with np.errstate(divide="ignore", invalid="ignore"):
+            enl = np.where(tot_enl > 0, 1 / np.cumsum((cnt_enl / tot_enl[:, None]) ** 2, 1)[:, -1], np.nan)
+        big = 2 ** 40
+        vzmin = B.scatter_min(ncell, vc, vzz, big)
+        vzmax = B.scatter_max(ncell, vc, vzz, -big)
+        ucol, inv = B.unique_inverse(colk)
+        ncol_ = int(ucol.shape[0])
+        col_cell = ucol // VY // VX
+        col_zmax = B.scatter_max(ncol_, inv, vzz, -big)
+        col_nfill = B.bincount(inv, minlength=ncol_)
+        eu = B.bincount(inv[B.astype(vzz, B.f) >= 0.65 * B.astype(col_zmax[inv], B.f)], minlength=ncol_)
+        open_ = B.bincount(col_cell, B.astype(vzmax[col_cell] - col_zmax, B.f), ncell)
+        closed = B.bincount(col_cell, B.astype((col_zmax - vzmin[col_cell] + 1) - col_nfill, B.f), ncell)
+        euph = B.bincount(col_cell, B.astype(eu, B.f), ncell)
+        olig = B.bincount(col_cell, B.astype(col_nfill - eu, B.f), ncell)
+        tot = open_ + closed + euph + olig
+        # lidRmetrics: a class with no voxel is NA (left join), and all are NA when the voxel box has < 3 voxels
+        vxmin = B.scatter_min(ncell, vc, (colk // VY) % VX, big)
+        vxmax = B.scatter_max(ncell, vc, (colk // VY) % VX, -big)
+        vymin = B.scatter_min(ncell, vc, colk % VY, big)
+        vymax = B.scatter_max(ncell, vc, colk % VY, -big)
+        filled = vzmax >= vzmin
+        nbox = (vxmax - vxmin + 1) * (vymax - vymin + 1) * (vzmax - vzmin + 1)
+        few = ~filled | (nbox <= 2)
+        with np.errstate(all="ignore"):
+            for name, v in (("OpenGapSpace", open_), ("ClosedGapSpace", closed), ("Euphotic", euph),
+                            ("Oligophotic", olig)):
+                out[name] = B.where(few | (v == 0), B.nan, v / tot * 100)
+        zr = B.where(filled, vzmax - vzmin, -1)
+        NZ = int(B.item(B.amax(zr))) + 2
+        hv = B.astype(B.bincount(vc * NZ + B.clip(vzz - vzmin[vc], 0, NZ - 1), minlength=ncell * NZ)
+                      .reshape(ncell, NZ), B.f)
+        F = hv[:, 1:] + 0
+        F[:, 0] = F[:, 0] + hv[:, 0]                         # first class holds zmin and zmin + 1
+        jj = B.arange(1, NZ, dtype=B.i64)[None, :]
+        vm = jj <= zr[:, None]
+        Fmin = B.amin(B.where(vm, F, B.inf), 1)
+        Fmax = B.amax(B.where(vm, F, -B.inf), 1)
+        with np.errstate(all="ignore"):
+            Fn = (F - Fmin[:, None]) / (Fmax - Fmin)[:, None]
+            k_ = _rsum(B, B.astype(vm, B.f))
+            fmean = _rsum(B, B.where(vm, Fn, 0.0)) / k_
+            fsd = B.sqrt(_rsum(B, B.where(vm, (Fn - fmean[:, None]) ** 2, 0.0)) / (k_ - 1))
+        nfill = B.bincount(vc, minlength=ncell)
+        bad = (zr < 1) | (Fmax == Fmin) | (k_ < 2) | (nfill <= 2)
+        out["vzsd"] = B.where(bad, B.nan, fsd)
+        out["vzcv"] = B.where(bad, B.nan, fsd / fmean * 100)
+
+    return out, enl
+
+
 def area_metrics(B, cell, z, rn, nr, vx, vy, ncell, zmin=ZMIN, bw=2.0, above=30.0):
     """Metrics from points above zmin. Returns dict name -> numpy array (ncell)."""
     out = {}
-    # voxels use every point: lidRmetrics rounds z first (round_any) and keeps round(z) > zmin,
-    # so a point at exactly z = 0.5 becomes a voxel at 1 m
-    cell_all, z_all, vx_all, vy_all = cell, z, vx, vy
+    vox, enl = _voxel_metrics(B, cell, z, vx, vy, ncell, zmin)     # rounded heights of every point
     m = z > zmin
     cell, zs, rns, nrs, vx, vy = cell[m], z[m], rn[m], nr[m], vx[m], vy[m]
     npts = int(cell.shape[0])
@@ -51,6 +129,8 @@ def area_metrics(B, cell, z, rn, nr, vx, vy, ncell, zmin=ZMIN, bw=2.0, above=30.
         res = {k: np.full(ncell, np.nan) for k in AREA_COLUMNS}
         res["n"] = np.full(ncell, np.nan)                   # metrics_basic: NA without points above zmin
         res["pz_above_30"] = np.zeros(ncell)                # metrics_interval: 0 without points
+        res.update({k: B.to_numpy(v).astype(np.float64) for k, v in vox.items()})
+        res["enl"] = enl
         return res
     # kde_peaks_count: R's density() of each cell's heights in file order (the order lidR passes them)
     kde = _kde_peaks(B, cell, zs, ncell, bw)
@@ -77,22 +157,20 @@ def area_metrics(B, cell, z, rn, nr, vx, vy, ncell, zmin=ZMIN, bw=2.0, above=30.
     out["zcv"] = sd / mean * 100
     out["CRR"] = (mean - zmin_c) / (zmax_c - zmin_c)
 
-    # entropy of 1 m layers
-    # lidR::entropy: breaks 0..ceiling(zmax); a point exactly at an integer zmax falls outside (findInterval)
-    # lidR::entropy is NA when zmax < 2 or min(z) < 0; the number of 1 m classes follows the tallest cell
+    # entropy of 1 m layers: metrics_dispersion passes z1 = z[z > 0] to lidR::entropy (NA when zmax < 2);
+    # breaks 0..ceiling(zmax); a point exactly at an integer zmax falls outside (findInterval)
     nbin = B.astype(B.ceil(B.maximum(B.nan_to_num(zmax_c, nan=0.0), 0.0)), B.i64)
     NB = int(B.item(B.amax(nbin))) + 1
     zb = B.astype(B.floor(zs), B.i64)
-    inb = (zb >= 0) & (zb < nbin[cell])
+    inb = (zs > 0) & (zb < nbin[cell])
     hb = B.bincount(cell[inb] * NB + zb[inb], minlength=ncell * NB).reshape(ncell, NB)
     hbf = B.astype(hb, B.f)
     p = hbf / B.maximum(_rsum(B, hbf)[:, None], 1)
     plogp = B.where(p > 0, p * B.log(B.where(p > 0, p, 1.0)), 0.0)
     Hs = -_rsum(B, plogp)
     ent = Hs / B.log(B.astype(B.maximum(nbin, 2), B.f))
-    zmin0 = B.nan_to_num(zmin_c, nan=0.0)
     counted = _rsum(B, hbf) > 0                     # all points at an integer zmax fall outside: 0/0 -> NA
-    out["zentropy"] = B.where((B.nan_to_num(zmax_c, nan=0.0) < 2) | (zmin0 < 0) | ~has | ~counted, B.nan, ent)
+    out["zentropy"] = B.where((B.nan_to_num(zmax_c, nan=0.0) < 2) | ~has | ~counted, B.nan, ent)
 
     # cumulative proportions in 10 height slices between zmin and zmax
     # lidRmetrics::metrics_canopydensity: breaks <- seq(zmin, zmax, (zmax - zmin) / 10); findInterval
@@ -181,79 +259,8 @@ def area_metrics(B, cell, z, rn, nr, vx, vy, ncell, zmin=ZMIN, bw=2.0, above=30.
         out["p_last"] = B.where(has, n_last / n_ok * 100, B.nan)
     out["ratio_last_first"] = B.where(n_first > 0, n_last / n_first, B.nan)
 
-    # voxels (1 m) — Lefsky light classes and vertical voxel distribution
-    vz = B.astype(B.round_away(z_all), B.i64)
-    vk = B.astype(vz, B.f) > zmin
-    vox_names = ("OpenGapSpace", "ClosedGapSpace", "Euphotic", "Oligophotic", "vzsd", "vzcv")
-    enl = np.full(ncell, np.nan)
-    if not bool(B.item(B.sum(B.astype(vk, B.i64)) > 0)):       # no rounded voxel above zmin
-        for name in vox_names:
-            out[name] = B.full(ncell, B.nan)
-    else:
-        VZ0 = int(B.item(B.amin(vz[vk])))                        # key radix from the heights present
-        VZ = int(B.item(B.amax(vz[vk]))) - VZ0 + 1
-        VX = int(B.item(B.amax(vx_all))) + 2                      # voxel column offsets within a block
-        VY = int(B.item(B.amax(vy_all))) + 2
-        key = ((cell_all[vk] * VX + vx_all[vk]) * VY + vy_all[vk]) * VZ + (vz[vk] - VZ0)
-        key = B.sort(key)
-        keep = B.concatenate([B.full(1, True, dtype=B.bool), key[1:] != key[:-1]])
-        key = key[keep]
-        vzz = key % VZ + VZ0                                      # voxel height (m)
-        colk = key // VZ
-        vc = colk // VY // VX
-        # forestr::calc_enl on the filled voxels (z > zmin): 1 / sum over 1 m layers of (n_layer / n_filled)^2
-        venl = B.to_numpy(B.bincount(vc * VZ + (vzz - VZ0), minlength=ncell * VZ))
-        cnt_enl = venl.reshape(ncell, VZ).astype(np.float64)
-        tot_enl = np.cumsum(cnt_enl, 1)[:, -1]
-        with np.errstate(divide="ignore", invalid="ignore"):
-            enl = np.where(tot_enl > 0, 1 / np.cumsum((cnt_enl / tot_enl[:, None]) ** 2, 1)[:, -1], np.nan)
-        big = 2 ** 40
-        vzmin = B.scatter_min(ncell, vc, vzz, big)
-        vzmax = B.scatter_max(ncell, vc, vzz, -big)
-        ucol, inv = B.unique_inverse(colk)
-        ncol_ = int(ucol.shape[0])
-        col_cell = ucol // VY // VX
-        col_zmax = B.scatter_max(ncol_, inv, vzz, -big)
-        col_nfill = B.bincount(inv, minlength=ncol_)
-        eu = B.bincount(inv[B.astype(vzz, B.f) >= 0.65 * B.astype(col_zmax[inv], B.f)], minlength=ncol_)
-        open_ = B.bincount(col_cell, B.astype(vzmax[col_cell] - col_zmax, B.f), ncell)
-        closed = B.bincount(col_cell, B.astype((col_zmax - vzmin[col_cell] + 1) - col_nfill, B.f), ncell)
-        euph = B.bincount(col_cell, B.astype(eu, B.f), ncell)
-        olig = B.bincount(col_cell, B.astype(col_nfill - eu, B.f), ncell)
-        tot = open_ + closed + euph + olig
-        # lidRmetrics: a class with no voxel is NA (left join), and all are NA when the voxel box has < 3 voxels
-        vxmin = B.scatter_min(ncell, vc, (colk // VY) % VX, big)
-        vxmax = B.scatter_max(ncell, vc, (colk // VY) % VX, -big)
-        vymin = B.scatter_min(ncell, vc, colk % VY, big)
-        vymax = B.scatter_max(ncell, vc, colk % VY, -big)
-        filled = vzmax >= vzmin
-        nbox = (vxmax - vxmin + 1) * (vymax - vymin + 1) * (vzmax - vzmin + 1)
-        few = ~filled | (nbox <= 2)
-        with np.errstate(all="ignore"):
-            for name, v in (("OpenGapSpace", open_), ("ClosedGapSpace", closed), ("Euphotic", euph),
-                            ("Oligophotic", olig)):
-                out[name] = B.where(few | (v == 0), B.nan, v / tot * 100)
-        zr = B.where(filled, vzmax - vzmin, -1)
-        NZ = int(B.item(B.amax(zr))) + 2
-        hv = B.astype(B.bincount(vc * NZ + B.clip(vzz - vzmin[vc], 0, NZ - 1), minlength=ncell * NZ)
-                      .reshape(ncell, NZ), B.f)
-        F = hv[:, 1:] + 0
-        F[:, 0] = F[:, 0] + hv[:, 0]                         # first class holds zmin and zmin + 1
-        jj = B.arange(1, NZ, dtype=B.i64)[None, :]
-        vm = jj <= zr[:, None]
-        Fmin = B.amin(B.where(vm, F, B.inf), 1)
-        Fmax = B.amax(B.where(vm, F, -B.inf), 1)
-        with np.errstate(all="ignore"):
-            Fn = (F - Fmin[:, None]) / (Fmax - Fmin)[:, None]
-            k_ = _rsum(B, B.astype(vm, B.f))
-            fmean = _rsum(B, B.where(vm, Fn, 0.0)) / k_
-            fsd = B.sqrt(_rsum(B, B.where(vm, (Fn - fmean[:, None]) ** 2, 0.0)) / (k_ - 1))
-        nfill = B.bincount(vc, minlength=ncell)
-        bad = (zr < 1) | (Fmax == Fmin) | (k_ < 2) | (nfill <= 2)
-        out["vzsd"] = B.where(bad, B.nan, fsd)
-        out["vzcv"] = B.where(bad, B.nan, fsd / fmean * 100)
-
     out["kde_peaks_count"] = kde
+    out.update(vox)
     out["n"] = B.where(has, nf, B.nan)
     out["pz_above_30"] = B.where(has, out["pz_above_30"], 0.0)
     res = {k: B.to_numpy(v).astype(np.float64) for k, v in out.items()}

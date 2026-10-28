@@ -73,6 +73,20 @@ def test_high_canopy_does_not_leak(backend):
     assert np.isclose(one.zentropy.iloc[0], math.log(3) / math.log(62), rtol=1e-12)
 
 
+@pytest.mark.parametrize("backend", BACKENDS)
+def test_voxels_of_points_at_zmin_do_not_depend_on_neighbours(backend):
+    """Points at z = 0.5: no point above zmin, but round(0.5) = 1 gives voxels (lidRmetrics create_voxels)."""
+    rng = np.random.default_rng(1)
+    xl, yl = rng.uniform(1, 24, 4), rng.uniform(1, 24, 4)
+    xr, yr = rng.uniform(26, 49, 50), rng.uniform(1, 24, 50)
+    opt = Options.lidr(trees=False)
+    one = compute_tile(src(xl, yl, np.full(4, 0.5)), 0, 25, 1, 1, cell=25, backend=backend, options=opt)
+    both = compute_tile(src(np.r_[xl, xr], np.r_[yl, yr], np.r_[np.full(4, 0.5), rng.uniform(5, 20, 50)]),
+                        0, 25, 2, 1, cell=25, backend=backend, options=opt)
+    assert np.isnan(one.n.iloc[0]) and one.Euphotic.iloc[0] == 100 and one.enl.iloc[0] == 1
+    same(one, both.iloc[:1].reset_index(drop=True), [c for c in one.columns])
+
+
 # ---------------------------------------------------------------- ground cells and a fixed table
 @pytest.mark.parametrize("trees", [False, True])
 def test_ground_cells_kept_and_columns_fixed(trees):
@@ -118,6 +132,32 @@ def test_dtm_on_its_own_pixel_grid(tmp_path, backend, res):
                        options=opt)
     want = compute_tile(src(x, y, zabs - g), 0.4, 29.6, 1, 1, cell=9.0, backend=backend, options=opt)
     same(got, want, [c for c in got.columns if c not in ("x", "y")])
+
+
+@pytest.mark.parametrize("backend", BACKENDS)
+@pytest.mark.parametrize("res", [0.1, 0.2, 0.25])
+def test_dtm_pixel_on_boundaries_independent_of_grid_origin(tmp_path, backend, res):
+    """Points on DTM pixel edges take the pixel floor((x - x_dtm) / res) of the DTM's own grid, whatever the
+    origin of the metric grid (0.3.0 used the window origin and could take the neighbouring pixel)."""
+    nr = nc = 40
+    a = 100 + 0.1 * np.arange(nc)[None, :] + 0.01 * np.arange(nr)[:, None]
+    _write_dtm(tmp_path / "d.tif", a, 0.0, nr * res, res, "float64")
+    k = np.arange(4, 30)
+    x = k * res                                        # every x on a column edge
+    y = nr * res - (k[::-1] * res)                     # every y on a row edge
+    zabs = 110.0 + np.arange(len(k))
+    col = np.floor((x - 0.0) / res).astype(int)        # independent reference, as lidR
+    row = np.floor((nr * res - y) / res).astype(int)
+    want = compute_tile(src(x, y, zabs - a[row, col]), 0.0, nr * res, 1, 1, cell=nr * res, backend=backend,
+                        options=Options.lidr(trees=False, other_packages=False))
+    for x0 in (0.0, res, 0.05, -0.3):
+        n = int(np.ceil((nr * res - x0) / (nr * res)))
+        got = compute_tile(src(x, y, zabs), x0, nr * res, n + 1, 1, cell=nr * res, dtm=str(tmp_path / "d.tif"),
+                           backend=backend, options=Options.lidr(trees=False, other_packages=False))
+        assert got.n_points.sum() == len(k)
+        g = got[got.n_points > 0]
+        if len(g) == 1:
+            same(g.reset_index(drop=True), want, ["n_points", "n", "zq20", "zcv", "CRR", "L4"])
 
 
 def test_integer_dtm_without_nodata_outside_coverage(tmp_path):
@@ -198,17 +238,51 @@ def test_device_and_host_paths_fractional_cells():
     same(a, b, [c for c in a.columns])
 
 
+@pytest.mark.skipif(not _available("cupy"), reason="cupy not available")
+def test_device_path_reads_laz_within_ram_budget(monkeypatch):
+    """The LAZ decoding chunk follows cpu_memory_gb on the GPU path too."""
+    import laspy
+    from pathlib import Path
+    seen = []
+    orig = laspy.LasReader.chunk_iterator
+
+    def spy(self, n):
+        seen.append(n)
+        return orig(self, n)
+
+    monkeypatch.setattr(laspy.LasReader, "chunk_iterator", spy)
+    laz = str(Path(__file__).resolve().parent / "data" / "synthetic.laz")
+    df = compute_tile(laz, -62000.0, -57750.0, 4, 4, backend="cupy", gpu_memory_gb=8, cpu_memory_gb=0.008)
+    assert df.attrs["stats"]["path"] == "device"
+    assert seen and max(seen) <= int(0.25 * 0.008 * 1024 ** 3 / 64) + 1
+
+
 # ---------------------------------------------------------------- strict comparison and budgets
 def test_compare_tables_rejects_false_positives():
     ref = pd.DataFrame({"x": [0.5, 1.5, 2.5], "y": [0.5, 0.5, 0.5], "m": [1.0, np.inf, -np.inf]})
     ok = compare_tables(ref, ref.copy(), ["m"])
-    assert ok.equal.all() and ok.n_finite.iloc[0] == 1
+    assert ok.equal.all() and ok.n_finite.iloc[0] == 1 and ok.status.iloc[0] == "equal"
     for got in (ref.iloc[:1], ref.iloc[:0], ref.assign(m=[1.0, 0.0, -np.inf]), ref.assign(m=[1.0, -np.inf, -np.inf]),
                 ref.assign(m=[1.0, np.inf, 100.0]), ref.assign(m=[np.nan, np.inf, -np.inf]),
                 pd.concat([ref, pd.DataFrame({"x": [9.5], "y": [0.5], "m": [1.0]})])):
         assert not compare_tables(ref, got, ["m"]).equal.all()
     with pytest.raises(ValueError):
         compare_tables(pd.concat([ref, ref]), ref, ["m"])
+    # an NA metric in a cell with points is not an empty cell: the missing row must fail
+    na = pd.DataFrame({"x": [0.5], "y": [0.5], "lad_cv": [np.nan]})
+    assert not compare_tables(na, na.iloc[:0], ["lad_cv"]).equal.all()
+    occ = pd.DataFrame({"x": [0.5], "y": [0.5]})
+    assert not compare_tables(na, na.iloc[:0], ["lad_cv"], occupied=occ).equal.all()
+    assert compare_tables(na, na.copy(), ["lad_cv"], occupied=occ).equal.all()
+    # a reference cell outside `occupied` (no point) may be absent; a result row there may not
+    two = pd.DataFrame({"x": [0.5, 1.5], "y": [0.5, 0.5], "m": [1.0, np.nan]})
+    assert compare_tables(two, two.iloc[:1], ["m"], occupied=occ).equal.all()
+    assert not compare_tables(two, two, ["m"], occupied=occ).equal.all()
+    # strings are errors, not NA; two empty tables are "empty", not equal
+    with pytest.raises(ValueError):
+        compare_tables(na, na.assign(lad_cv=["broken"]), ["lad_cv"])
+    e = compare_tables(na.iloc[:0], na.iloc[:0], ["lad_cv"])
+    assert e.status.iloc[0] == "empty" and not e.equal.iloc[0]
 
 
 def test_budget_below_minimum_is_refused():

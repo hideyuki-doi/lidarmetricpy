@@ -3,11 +3,16 @@ set -euo pipefail
 PIDS=()
 cd "$(dirname "$0")"
 RSCRIPT=${RSCRIPT:-Rscript}      # R with lidR 4.3.3, lidRmetrics 0.1.5 (+ leafR, forestr, ForestGapR, canopyLazR)
-mapfile -t JOBS < <(python3 -c "
+JOBFILE=$(mktemp)
+trap 'rm -f "$JOBFILE"' EXIT
+python3 -c "
 import json
 for c in json.load(open('data/full.json')):
     print(c['file'], c['x0'], c['y1'], c['ncol'], c['nrow'], 'ref_full/'+c['mesh'])
-")
+" > "$JOBFILE"                               # a failure here stops the script (set -e)
+mapfile -t JOBS < "$JOBFILE"
+[ ${#JOBS[@]} -gt 0 ] || { echo "no job in the manifest" >&2; exit 1; }
+echo "${#JOBS[@]} job(s)"
 for j in "${JOBS[@]}"; do
   set -- $j
   ( /usr/bin/time -f "%e s %M KB" nice -n 10 $RSCRIPT ref_lidr.R $1 $2 $3 $4 $5 $6 > $6.log 2>&1 ) &

@@ -11,7 +11,7 @@ import pandas as pd
 import pytest
 
 from lidarmetricpy import Options, canopylazr, compute_tile, get_backend
-from lidarmetricpy.validate import compare_tables
+from lidarmetricpy.validate import compare_tables, occupied_cells
 
 DATA = Path(__file__).resolve().parent / "data"
 REF = DATA / "ref"
@@ -52,8 +52,8 @@ BACKENDS = [pytest.param(b, marks=pytest.mark.skipif(not _available(b), reason=f
             for b in ("numpy", "torch-cpu", "cupy", "torch-cuda")]
 
 
-def assert_same(ref, got, cols, what):
-    res = compare_tables(ref, got, cols)
+def assert_same(ref, got, cols, what, occupied=None):
+    res = compare_tables(ref, got, cols, occupied=occupied)
     bad = res[~res.equal]
     assert bad.empty, what + "\n" + bad.to_string()
 
@@ -69,16 +69,14 @@ def reference():
 def test_cells_match_reference(backend, reference):
     df, (chm, L, (rr, cc, area)) = compute_tile(str(DATA / "synthetic.laz"), X0, Y1, NC, NR, backend=backend,
                                                 options=OPT, return_trees=True)
-    ref = reference.copy()
-    # a cell without any point: lidR lists it (all lidRmetrics values NA), lidarmetricpy has no row; the
-    # gap summary of the reference still describes its interpolated canopy, so it is left out here
-    empty = ref[LIDRMETRICS + ["n"]].isna().all(axis=1)
-    assert len(df) == int((~empty).sum())
-    ref = ref[~empty]
+    las = laspy.read(DATA / "synthetic.laz")
+    occ = occupied_cells(np.asarray(las.x), np.asarray(las.y), X0, Y1, NC, NR, 25.0)    # cells with points
+    assert len(occ) == 15 and len(df) == len(occ)
+    ref = reference.merge(occ, on=["x", "y"])
     ref.loc[ref.tree_n.isna(), "tree_n"] = 0                 # the R summary has no row for cells without trees
-    assert_same(ref, df, ["n"] + LIDRMETRICS, "lidRmetrics")
-    assert_same(ref, df, TREES, "lidR trees")
-    assert_same(ref, df, OTHER, "leafR / forestr / ForestGapR / PyForestScan")
+    assert_same(ref, df, ["n"] + LIDRMETRICS, "lidRmetrics", occ)
+    assert_same(ref, df, TREES, "lidR trees", occ)
+    assert_same(ref, df, OTHER, "leafR / forestr / ForestGapR / PyForestScan", occ)
     # tree tops: same positions, heights and crown areas
     rt = pd.read_csv(REF / "synthetic_trees.csv")
     pt = pd.DataFrame({"x": L.xmin + (cc + 0.5) * L.res, "y": L.ymax - (rr + 0.5) * L.res,

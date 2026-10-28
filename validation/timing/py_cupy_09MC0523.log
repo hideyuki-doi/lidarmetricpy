@@ -1,0 +1,2 @@
+import_s 0.23 compute_s 4.27 write_s 0.08 stages {'read': 1.58, 'prepare': 0.03, 'area': 1.0, 'canopy': 0.17, 'trees': 1.34, 'rumple': 0.35}
+4.87 s 2086776 KB

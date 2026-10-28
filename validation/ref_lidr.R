@@ -8,7 +8,9 @@ a <- commandArgs(trailingOnly = TRUE)
 laz <- a[1]; x0 <- as.numeric(a[2]); y1 <- as.numeric(a[3]); nc <- as.integer(a[4]); nr <- as.integer(a[5]); out <- a[6]
 CELL <- 25
 set_lidr_threads(1); setDTthreads(1); options(lidR.progress = FALSE)
+t0 <- Sys.time()
 las <- readLAS(laz, select = "xyzirn")
+t_read <- as.numeric(difftime(Sys.time(), t0, units = "secs"))
 tmpl <- rast(xmin = x0, xmax = x0 + nc * CELL, ymin = y1 - nr * CELL, ymax = y1, resolution = CELL, crs = st_crs(las)$wkt)
 
 m3 <- function(x, y, z, i, rn, nr) {
@@ -52,4 +54,4 @@ dt <- merge(dt, tm, by = c("x", "y"), all.x = TRUE)
 fwrite(dt, paste0(out, "_cells.csv"))
 fwrite(tt, paste0(out, "_trees.csv"))
 writeRaster(chm, paste0(out, "_chm.tif"), overwrite = TRUE)
-cat(sprintf("cells %d trees %d area_s %.1f tree_s %.1f\n", nrow(dt), nrow(tt), t_area, t_tree))
+cat(sprintf("cells %d trees %d read_s %.1f area_s %.1f tree_s %.1f\n", nrow(dt), nrow(tt), t_read, t_area, t_tree))

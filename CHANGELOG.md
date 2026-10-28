@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.3.1 (2026-10-28)
+
+Fixes from a second review (of 0.3.0, commit fe14561). Each item was reproduced and has a regression test.
+
+- **Voxel metrics at zmin**: points at exactly z = zmin (e.g. 0.5) give voxels (round(0.5) = 1 > zmin, as in
+  lidRmetrics create_voxels) even when no point lies above zmin. 0.3.0 skipped the voxel metrics and ENL for a
+  block without points above zmin, so such a cell got different values alone and with a vegetated neighbour.
+  Voxel metrics are now computed apart from the raw-height metrics (R: Euphotic = 100 for four points at 0.5 m).
+- **DTM pixel on pixel edges**: the DTM column / row is floor((x - x_dtm) / res) on the DTM's own grid (as lidR),
+  then shifted by the window's integer offset. 0.3.0 divided from the padded window origin, so a point on a
+  pixel edge could take the neighbouring pixel depending on the metric grid's origin (e.g. 0.1 m DTM). Points
+  outside the window are NA instead of clamped.
+- **zentropy with zmin < 0**: entropy uses only z > 0, as metrics_dispersion does.
+- **GPU path, RAM budget**: LAZ is decoded in chunks that follow `cpu_memory_gb` on the GPU path too; the GPU
+  works on its own slices.
+- **Validation**: `compare_tables` decides the required cells apart from the metric values (`occupied`, counted
+  from the LAZ by `occupied_cells`); a missing cell fails even when its metrics are NA; non-numeric values raise;
+  two empty tables give status "empty", not equal. Validation scripts check every reference file before
+  computing and report how many datasets were verified. The reference shell scripts stop when the job list
+  cannot be built or is empty.
+- **Timing**: lidR scripts record the reading time; R and Python are compared over the same intervals
+  (work inside the process: read + compute; whole process: start to saved files).
+
 ## 0.3.0 (2026-10-28)
 
 Fixes from an independent review of 0.2.0 (commit bfe8725). Every item below was reproduced first and has a

@@ -13,12 +13,15 @@ from lidarmetricpy.canopylazr import canopylazr  # noqa: E402
 from lidarmetricpy.validate import compare_tables  # noqa: E402
 
 rows = []
-for c in json.loads((HERE / "data/rawclips.json").read_text()):
+clips = json.loads((HERE / "data/rawclips.json").read_text())
+need = [HERE / "ref" / f"{c['mesh']}_xy{xy}_clz.csv" for c in clips for xy in (10, 5)]
+missing = [str(p) for p in need if not p.exists()]
+if missing or not clips:
+    sys.exit("missing reference files: " + ", ".join(missing) if missing else "no raw clip in the manifest")
+for c in clips:
     las = laspy.read(str(HERE / c["file"]))
     for xy in (10, 5):
         p = HERE / "ref" / f"{c['mesh']}_xy{xy}_clz.csv"
-        if not p.exists():
-            continue
         r = pd.read_csv(p)
         o = pd.DataFrame(canopylazr(las.x, las.y, las.z, xy, 1, 5))
         res_c = compare_tables(r, o, [k for k in r.columns if k.startswith("clz")])
