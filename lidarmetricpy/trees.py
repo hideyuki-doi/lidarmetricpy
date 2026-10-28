@@ -11,6 +11,8 @@ region growing is inherently sequential and runs on the CPU (numba).
 """
 from __future__ import annotations
 
+import math
+
 import numpy as np
 
 try:
@@ -23,6 +25,8 @@ except ImportError:  # pragma: no cover
         return f
 
 RES = 0.5
+TREE_COLUMNS = ("tree_n", "tree_h_mean", "tree_h_sd", "tree_h_cv", "tree_h_max", "tree_h_gini", "tree_h_shannon",
+                "crown_m2_mean", "crown_m2_sd")
 SUBCIRCLE = 0.15
 EPS = 1e-8                                           # lidR Shapes.h EPSILON
 
@@ -130,33 +134,15 @@ class CanopyAccumulator:
             self.chm = B.maximum(self.chm, B.scatter_max(L.nrow * L.ncol, cell, zd[ok], -B.inf))
         self._extremes_dev(xd, yd)
 
-    def _extremes(self, x, y, step=RES):
-        """Hull candidates on the host (float32 devices): per 0.5 m row min/max x, per column min/max y."""
-        sel = np.zeros(len(x), bool)
-        for a, b in ((x, y), (y, x)):
-            k = np.floor(b / step).astype(np.int64)
-            k -= k.min()
-            n = int(k.max()) + 1
-            lo = np.full(n, np.inf)
-            hi = np.full(n, -np.inf)
-            np.minimum.at(lo, k, a)
-            np.maximum.at(hi, k, a)
-            sel |= (a == lo[k]) | (a == hi[k])
-        self.ext.append(np.column_stack([x[sel], y[sel]]))
+    def _extremes(self, x, y):
+        """Convex-hull vertices of a block given on the host (float32 devices)."""
+        from .backend import get_backend
+        self.ext.append(_hull_vertices(get_backend("numpy"), np.asarray(x, np.float64), np.asarray(y, np.float64)))
 
-    def _extremes_dev(self, xd, yd, x=None, y=None, step=RES):
-        """Hull candidates on the device: per 0.5 m row the points with min/max x, per column min/max y."""
-        B = self.B
-        m = None
-        for a, b in ((xd, yd), (yd, xd)):
-            k = B.astype(B.floor(B.sdiv(b, step)), B.i64)
-            k = k - B.amin(k)
-            n = int(B.item(B.amax(k))) + 1
-            lo = B.scatter_min(n, k, a, B.inf)
-            hi = B.scatter_max(n, k, a, -B.inf)
-            mm = (a == lo[k]) | (a == hi[k])
-            m = mm if m is None else (m | mm)
-        self.ext.append(np.column_stack([B.to_numpy(xd[m]), B.to_numpy(yd[m])]))
+    def _extremes_dev(self, xd, yd, x=None, y=None):
+        """Convex-hull vertices of a block on a float64 device; the hull of all blocks' vertices is the hull
+        of the whole tile (lidR st_convex_hull uses every point)."""
+        self.ext.append(_hull_vertices(self.B, xd, yd))
 
     def finish(self, fill=True, k=10, p=2.0, rmax=50.0):
         """Return the canopy raster (nrow, ncol) as numpy float64, NA = nan, rounded to 3 decimals."""
@@ -169,13 +155,61 @@ class CanopyAccumulator:
         return r_round(chm, 3)
 
 
+def _hull_candidates(B, x, y):
+    """Mask of the points that can be convex-hull vertices (Akl-Toussaint).
+
+    The extreme points in the directions x, y, x + y and x - y span a convex polygon inside the hull; points
+    strictly inside it (by more than 1e-6 m, far above the rounding error of the test) cannot be hull
+    vertices. Returns None when the polygon is degenerate (keep every point)."""
+    import shapely
+    idx = []
+    for kv in (x, y, x + y, x - y):
+        idx.append(int(B.item(B.argmin(kv))))
+        idx.append(int(B.item(B.argmax(kv))))
+    ii = B.asarray(np.array(idx))
+    P = np.column_stack([B.to_numpy(x[ii]), B.to_numpy(y[ii])]).astype(np.float64)
+    poly = shapely.MultiPoint(P).convex_hull
+    if not isinstance(poly, shapely.Polygon) or poly.area <= 0:
+        return None
+    V = np.asarray(poly.exterior.coords)[:-1]
+    area2 = float(np.sum(V[:, 0] * np.roll(V[:, 1], -1) - np.roll(V[:, 0], -1) * V[:, 1]))
+    if area2 < 0:                                                      # make it counter-clockwise
+        V = V[::-1]
+    inside = None
+    for i in range(len(V)):
+        ax, ay = float(V[i, 0]), float(V[i, 1])
+        ex, ey = float(V[(i + 1) % len(V), 0]) - ax, float(V[(i + 1) % len(V), 1]) - ay
+        d = (ex * (y - ay) - ey * (x - ax)) / math.hypot(ex, ey)       # distance to the left of the edge
+        m = d > 1e-6
+        inside = m if inside is None else (inside & m)
+    return ~inside
+
+
+def _hull_vertices(B, x, y):
+    """Exact convex-hull vertices of the points (x, y backend arrays) as an (m, 2) numpy array."""
+    import shapely
+    n = int(x.shape[0])
+    if n == 0:
+        return np.zeros((0, 2))
+    if n > 64:
+        keep = _hull_candidates(B, x, y)
+        if keep is not None:
+            x, y = x[keep], y[keep]
+    pts = np.column_stack([B.to_numpy(x), B.to_numpy(y)]).astype(np.float64)
+    hull = shapely.MultiPoint(pts).convex_hull
+    if isinstance(hull, shapely.Polygon):
+        return np.asarray(hull.exterior.coords)[:-1]
+    return np.asarray(shapely.get_coordinates(hull))                  # point or segment (degenerate)
+
+
 def _knnidw_fill(chm, L, ext, k, p, rmax):
     """Fill empty cells inside the convex hull of the points (buffered by one cell) with lidR knnidw."""
-    from scipy.spatial import ConvexHull
     import shapely
     from .knnidw import knnidw
-    hull = ext[ConvexHull(ext).vertices]
-    poly = shapely.buffer(shapely.Polygon(hull), L.res, quad_segs=30)      # sf::st_buffer default nQuadSegs = 30
+    if len(ext) == 0:
+        return chm
+    hull = shapely.MultiPoint(ext).convex_hull                     # polygon, or a segment / point if degenerate
+    poly = shapely.buffer(hull, L.res, quad_segs=30)                # sf::st_buffer default nQuadSegs = 30
     rr, cc = np.nonzero(np.isnan(chm))
     xc = L.xmin + (cc + 0.5) * L.res
     yc = L.ymax - (rr + 0.5) * L.res

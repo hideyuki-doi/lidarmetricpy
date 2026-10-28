@@ -5,12 +5,12 @@ import sys
 from pathlib import Path
 
 import laspy
-import numpy as np
 import pandas as pd
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent))
 from lidarmetricpy.canopylazr import canopylazr  # noqa: E402
+from lidarmetricpy.validate import compare_tables  # noqa: E402
 
 rows = []
 for c in json.loads((HERE / "data/rawclips.json").read_text()):
@@ -21,16 +21,12 @@ for c in json.loads((HERE / "data/rawclips.json").read_text()):
             continue
         r = pd.read_csv(p)
         o = pd.DataFrame(canopylazr(las.x, las.y, las.z, xy, 1, 5))
-        m = r.merge(o, on=["x", "y"], how="outer", suffixes=("_r", "_p"), indicator=True)
-        for k in [k for k in r.columns if k.startswith("clz")]:
-            a, b = m[k + "_r"], m[k + "_p"]
-            both = a.notna() & b.notna()
-            d = (a[both] - b[both]).abs()
-            rows.append({"mesh": c["mesh"], "xy_res": xy, "metric": k, "columns": len(m),
-                         "unmatched_columns": int((m._merge != "both").sum()), "n": int(both.sum()),
-                         "nan_mismatch": int((a.isna() != b.isna()).sum()), "max_abs_diff": float(d.max()),
-                         "equal_share": float(((d <= 1e-6 * np.maximum(1, a[both].abs())) | (a[both] == b[both])).mean())})
-res = pd.DataFrame(rows)
+        res_c = compare_tables(r, o, [k for k in r.columns if k.startswith("clz")])
+        res_c["mesh"], res_c["xy_res"] = c["mesh"], xy
+        rows.append(res_c)
+res = pd.concat(rows, ignore_index=True)
 res.to_csv(HERE / "compare_canopylazr.csv", index=False)
-print(res.groupby("metric")[["n", "nan_mismatch", "unmatched_columns", "max_abs_diff", "equal_share"]]
-      .agg({"n": "sum", "nan_mismatch": "sum", "unmatched_columns": "max", "max_abs_diff": "max", "equal_share": "min"}))
+print(res.groupby("metric")[["n_finite", "missing", "extra", "class_mismatch", "value_mismatch", "max_abs_diff", "equal"]]
+      .agg({"n_finite": "sum", "missing": "sum", "extra": "sum", "class_mismatch": "sum", "value_mismatch": "sum",
+            "max_abs_diff": "max", "equal": "all"}))
+sys.exit(0 if res.equal.all() else 1)

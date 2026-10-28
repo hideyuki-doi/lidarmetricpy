@@ -16,7 +16,9 @@ import pandas as pd
 HERE = Path(__file__).resolve().parent
 VAL = HERE.parent / "validation"
 sys.path.insert(0, str(HERE.parent))
+sys.path.insert(0, str(VAL))
 from lidarmetricpy import Options, canopylazr, compute_tile  # noqa: E402
+from refcheck import prepare_reference  # noqa: E402
 
 OUT = HERE / "data"
 OUT.mkdir(exist_ok=True)
@@ -38,21 +40,26 @@ def main():
             ref = refs(refdir, c["mesh"])
             for backend in ("cupy", "torch-cuda", "numpy", "torch-cpu", "torch-cuda32"):
                 df = compute_tile(str(VAL / c["file"]), c["x0"], c["y1"], c["ncol"], c["nrow"], backend=backend, options=OPT)
-                m = ref.merge(df, on=["x", "y"], how="left", suffixes=("_ref", "_pcm"))
+                m = prepare_reference(ref).merge(df, on=["x", "y"], how="outer", suffixes=("_ref", "_pcm"),
+                                                 indicator=True)
                 m["dataset"], m["mesh"], m["backend"] = kind, c["mesh"], backend
                 rows.append(m)
                 print(kind, c["mesh"], backend, len(m), flush=True)
-    pd.concat(rows, ignore_index=True).to_parquet(OUT / "cells_vs_reference.parquet")
+    out = pd.concat(rows, ignore_index=True)
+    out["_merge"] = out["_merge"].astype(str)
+    out.to_parquet(OUT / "cells_vs_reference.parquet")
     cl = []
     for c in json.loads((VAL / "data/rawclips.json").read_text()):
         las = laspy.read(str(VAL / c["file"]))
         for xy in (10, 5):
             r = pd.read_csv(VAL / "ref" / f"{c['mesh']}_xy{xy}_clz.csv")
             o = pd.DataFrame(canopylazr(las.x, las.y, las.z, xy, 1, 5))
-            m = r.merge(o, on=["x", "y"], how="outer", suffixes=("_ref", "_pcm"))
+            m = r.merge(o, on=["x", "y"], how="outer", suffixes=("_ref", "_pcm"), indicator=True)
             m["mesh"], m["xy_res"] = c["mesh"], xy
             cl.append(m)
-    pd.concat(cl, ignore_index=True).to_parquet(OUT / "canopylazr_vs_reference.parquet")
+    cl = pd.concat(cl, ignore_index=True)
+    cl["_merge"] = cl["_merge"].astype(str)
+    cl.to_parquet(OUT / "canopylazr_vs_reference.parquet")
     print("done")
 
 

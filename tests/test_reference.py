@@ -11,6 +11,7 @@ import pandas as pd
 import pytest
 
 from lidarmetricpy import Options, canopylazr, compute_tile, get_backend
+from lidarmetricpy.validate import compare_tables
 
 DATA = Path(__file__).resolve().parent / "data"
 REF = DATA / "ref"
@@ -30,10 +31,18 @@ CLZ = ["clz_chm", "clz_ground", "clz_vertical_sd_lad", "clz_rugosity", "clz_fill
 
 
 def _available(name):
+    """True only if the backend can actually allocate on its device (CPU-only PyTorch has no 'cuda')."""
     try:
+        if name in ("torch-cuda", "torch-cuda32"):
+            import torch
+            if not torch.cuda.is_available():
+                return False
+        if name == "mps":
+            import torch
+            if not torch.backends.mps.is_available():
+                return False
         B = get_backend(name)
-        if name == "cupy":
-            B.xp.zeros(1)
+        B.zeros(1)
         return True
     except Exception:  # noqa: BLE001
         return False
@@ -44,19 +53,9 @@ BACKENDS = [pytest.param(b, marks=pytest.mark.skipif(not _available(b), reason=f
 
 
 def assert_same(ref, got, cols, what):
-    bad = []
-    for k in cols:
-        a, b = ref[k].astype(float).to_numpy(), got[k].astype(float).to_numpy()
-        if k == "tree_n":           # cells without trees: NA in the R summary; cells without points: no lidarmetricpy row
-            a, b = np.nan_to_num(a), np.nan_to_num(b)
-        na = np.isnan(a) != np.isnan(b)
-        both = ~np.isnan(a) & ~np.isnan(b)
-        d = np.abs(a[both] - b[both])
-        tol = 1e-6 * np.maximum(1, np.abs(a[both]))
-        off = ~((d <= tol) | (a[both] == b[both]))
-        if na.any() or off.any():
-            bad.append(f"{k}: NA differs in {int(na.sum())} cells, values in {int(off.sum())}")
-    assert not bad, f"{what}: " + "; ".join(bad)
+    res = compare_tables(ref, got, cols)
+    bad = res[~res.equal]
+    assert bad.empty, what + "\n" + bad.to_string()
 
 
 @pytest.fixture(scope="module")
@@ -70,18 +69,16 @@ def reference():
 def test_cells_match_reference(backend, reference):
     df, (chm, L, (rr, cc, area)) = compute_tile(str(DATA / "synthetic.laz"), X0, Y1, NC, NR, backend=backend,
                                                 options=OPT, return_trees=True)
-    m = reference.merge(df, on=["x", "y"], how="left", suffixes=("_ref", ""))
-    # lidarmetricpy returns the cells that have points; lidR also lists empty cells (all NA)
-    assert set(map(tuple, m.loc[m.n.isna(), ["x", "y"]].values)) == \
-        set(map(tuple, reference.loc[reference.n_ref.isna() if "n_ref" in reference else reference.n.isna(), ["x", "y"]].values))
-    m = m[m.n.notna()]
-    ref = m[[c + "_ref" if c + "_ref" in m else c for c in LIDRMETRICS + TREES]]
-    ref.columns = LIDRMETRICS + TREES
-    assert_same(ref, m, LIDRMETRICS, "lidRmetrics")
-    assert_same(ref, m, TREES, "lidR trees")
-    ref_o = m[[c + "_ref" for c in OTHER]]
-    ref_o.columns = OTHER
-    assert_same(ref_o, m, OTHER, "leafR / forestr / ForestGapR / PyForestScan")
+    ref = reference.copy()
+    # a cell without any point: lidR lists it (all lidRmetrics values NA), lidarmetricpy has no row; the
+    # gap summary of the reference still describes its interpolated canopy, so it is left out here
+    empty = ref[LIDRMETRICS + ["n"]].isna().all(axis=1)
+    assert len(df) == int((~empty).sum())
+    ref = ref[~empty]
+    ref.loc[ref.tree_n.isna(), "tree_n"] = 0                 # the R summary has no row for cells without trees
+    assert_same(ref, df, ["n"] + LIDRMETRICS, "lidRmetrics")
+    assert_same(ref, df, TREES, "lidR trees")
+    assert_same(ref, df, OTHER, "leafR / forestr / ForestGapR / PyForestScan")
     # tree tops: same positions, heights and crown areas
     rt = pd.read_csv(REF / "synthetic_trees.csv")
     pt = pd.DataFrame({"x": L.xmin + (cc + 0.5) * L.res, "y": L.ymax - (rr + 0.5) * L.res,
@@ -97,8 +94,5 @@ def test_canopylazr_matches_reference():
     for xy in (10, 5):
         r = pd.read_csv(REF / f"synthetic_xy{xy}_clz.csv")
         o = pd.DataFrame(canopylazr(las.x, las.y, las.z, xy, 1, 5))
-        m = r.merge(o, on=["x", "y"], how="outer", suffixes=("_ref", ""))
-        assert len(m) == len(r) == len(o)
-        ref = m[[c + "_ref" for c in CLZ]]
-        ref.columns = CLZ
-        assert_same(ref, m, CLZ, f"canopyLazR {xy} m")
+        assert len(r) == len(o)
+        assert_same(r, o, CLZ, f"canopyLazR {xy} m")

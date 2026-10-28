@@ -28,7 +28,7 @@ def assert_identical(a, b):
 @pytest.mark.parametrize("backend", BACKENDS)
 def test_ram_budget_multi_pass(backend):
     base = run(backend)
-    small = run(backend, cpu_memory_gb=0.005)                    # raw points do not fit: several reading passes
+    small = run(backend, cpu_memory_gb=0.008)                    # raw points do not fit: several reading passes
     assert small.attrs["stats"]["passes"] > 1 or small.attrs["stats"]["path"] == "device"
     assert_identical(base, small)
 
@@ -67,7 +67,7 @@ def test_numpy_and_gpu_agree():
 def test_old_option_names():
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
-        a = run("numpy", host_memory_gb=0.005)
+        a = run("numpy", host_memory_gb=0.008)
     assert any("cpu_memory_gb" in str(x.message) for x in w)
     assert a.attrs["stats"]["passes"] > 1
     with pytest.warns(UserWarning, match="no effect"):

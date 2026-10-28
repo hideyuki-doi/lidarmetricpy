@@ -3,7 +3,7 @@ lidRmetrics,cupy,24 / 24,2800,2.3e-12
 lidRmetrics,torch-cuda,24 / 24,2800,2.3e-12
 lidRmetrics,numpy,24 / 24,2800,2.3e-12
 lidRmetrics,torch-cpu,24 / 24,2800,2.4e-12
-lidRmetrics,torch-cuda32,18 / 24,2800,1.0e+00
+lidRmetrics,torch-cuda32,19 / 24,2800,9.1e-04
 lidR trees,cupy,9 / 9,2800,5.9e-15
 lidR trees,torch-cuda,9 / 9,2800,5.9e-15
 lidR trees,numpy,9 / 9,2800,5.9e-15

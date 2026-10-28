@@ -16,13 +16,16 @@ from __future__ import annotations
 
 import numpy as np
 
-NS = 64                                    # 1 m layers 0..63 (heights are < 60 m after filtering)
+EXTRA_COLUMNS = ("leafr_lai", "leafr_lahv", "leafr_lahv_laiw", "leafr_lahv_hw", "leafr_lahv_laiw_hw", "leafr_fhd",
+                 "leafr_fhd_even", "leafr_gs", "leafr_gs_even", "leafr_gc", "pfs_pai", "pfs_cover", "pfs_fhd")
+GAP_COLUMNS = ("gap_frac", "gap_n", "gap_area_mean")
 
 
 def profile_counts(B, cell, z, ncell):
     """Counts per cell and 1 m layer for leafR and PyForestScan, plus leafR GC sums (all on the backend)."""
     out = {}
     i64 = B.i64
+    NS = (int(B.item(B.amax(B.ceil(B.maximum(z, 0.0))))) + 2) if int(z.shape[0]) else 2   # 1 m layers present
     # leafR: Z[Z < 0] <- 0; slice = as.integer(Z) (truncation)
     zl = B.maximum(z, 0.0)
     sl = B.clip(B.astype(B.floor(zl), i64), 0, NS - 1)
@@ -168,15 +171,6 @@ def extra_metrics(B, cell, z, ncell):
         G = 2 * pc["gc_sx"] / pc["gc_s"] - (n + 1)
         out["leafr_gc"] = G / (n - 1)
     return out
-
-
-def enl_from_voxels(vc_np, vz_np, ncell):
-    """forestr::calc_enl: 1 / sum(p_i^2), p_i = filled voxels in 1 m layer i / all filled voxels."""
-    cnt = np.bincount(vc_np * 64 + vz_np, minlength=ncell * 64).reshape(ncell, 64).astype(np.float64)
-    tot = cnt.sum(1)
-    with np.errstate(divide="ignore", invalid="ignore"):
-        p2 = ((cnt / tot[:, None]) ** 2).sum(1)
-        return np.where(tot > 0, 1 / p2, np.nan)
 
 
 def gap_metrics(chm, layout, x0, y1, cell, nrow, ncol, threshold=10.0, size=(1.0, 1e4)):

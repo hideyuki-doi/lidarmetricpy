@@ -1,4 +1,6 @@
 #!/bin/bash
+set -euo pipefail
+PIDS=()
 cd "$(dirname "$0")"
 RSCRIPT=${RSCRIPT:-Rscript}      # R with lidR 4.3.3, lidRmetrics 0.1.5 (+ leafR, forestr, ForestGapR, canopyLazR)
 mapfile -t JOBS < <(python3 -c "
@@ -8,6 +10,7 @@ for c in json.load(open('data/full.json')): print(c['file'], c['x0'], c['y1'], c
 for j in "${JOBS[@]}"; do
   set -- $j
   nice -n 10 $RSCRIPT ref_other.R $1 $2 $3 $4 $5 $6 > $6.other.log 2>&1 &
+  PIDS+=($!)
 done
-wait
+for p in "${PIDS[@]}"; do wait "$p"; done
 echo ALLDONE

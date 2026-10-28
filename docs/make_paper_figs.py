@@ -28,6 +28,7 @@ FIG.mkdir(exist_ok=True)
 TAB.mkdir(exist_ok=True)
 sys.path.insert(0, str(VAL))
 from compare import METRICS as LIDR  # noqa: E402
+from lidarmetricpy.validate import compare_tables  # noqa: E402
 
 OTHER = ["leafr_lai", "leafr_lahv", "leafr_lahv_laiw", "leafr_lahv_hw", "leafr_lahv_laiw_hw", "leafr_fhd",
          "leafr_fhd_even", "leafr_gs", "leafr_gs_even", "leafr_gc", "pfs_pai", "pfs_cover", "pfs_fhd", "enl",
@@ -81,16 +82,17 @@ def pair(df, m):
 
 
 def agreement(df, m):
-    a, b = pair(df, m)
-    both = a.notna() & b.notna()
-    nan_mis = int((a.isna() != b.isna()).sum())
-    d = (a[both] - b[both]).abs()
-    eq = (d <= TOL * np.maximum(1, a[both].abs())) | (a[both] == b[both])
-    fin = np.isfinite(d)
-    rel = (d[fin] / np.maximum(1, a[both][fin].abs()))
-    return {"n": int(both.sum()), "nan_mismatch": nan_mis, "equal_share": float(eq.mean()) if len(eq) else np.nan,
-            "max_abs_diff": float(d[fin].max()) if fin.any() else 0.0,
-            "max_rel_diff": float(rel.max()) if len(rel) else 0.0}
+    """Strict agreement of one metric (lidarmetricpy.validate.compare_tables): every reference cell must have a
+    result and vice versa (outer join, _merge), same NA / Inf pattern, finite values within 1e-6 relative."""
+    keys = [k for k in ("dataset", "mesh", "xy_res", "x", "y") if k in df.columns]
+    side = df["_merge"].astype(str) if "_merge" in df else pd.Series("both", index=df.index)
+    ref = df.loc[side != "right_only", keys + [m + "_ref"]].rename(columns={m + "_ref": m})
+    got = df.loc[side != "left_only", keys + [m + "_pcm"]].rename(columns={m + "_pcm": m})
+    r = compare_tables(ref, got, [m], keys=keys, rtol=TOL).iloc[0]
+    return {"n": int(r.n_finite), "nan_mismatch": int(r.missing + r.extra + r.class_mismatch),
+            "equal_share": 1 - r.value_mismatch / max(1, r.n_finite),
+            "max_abs_diff": 0.0 if np.isnan(r.max_abs_diff) else float(r.max_abs_diff),
+            "max_rel_diff": 0.0 if np.isnan(r.max_rel_diff) else float(r.max_rel_diff), "equal": bool(r.equal)}
 
 
 # ------------------------------------------------------------------ figure 1: workflow
@@ -198,7 +200,7 @@ def fig_heatmap(cells, clz):
             r = res[(res.metric == m) & (res.backend == bk)]
             if len(r):
                 mat[i, j] = max(r.max_rel_diff.iloc[0], 1e-17)
-                flag[i, j] = (r.equal_share.iloc[0] < 1) or (r.nan_mismatch.iloc[0] > 0)
+                flag[i, j] = not bool(r.equal.iloc[0])
     fig, ax = plt.subplots(figsize=(4.2, 9.2))
     cmap = plt.get_cmap("Blues").copy()
     cmap.set_bad("#f3f2ee")
@@ -229,10 +231,12 @@ def fig_heatmap(cells, clz):
 
 
 # ------------------------------------------------------------------ figure 4: one tile time and stages
-def lidr_times():
+def lidr_times(folder="ref_full"):
+    """lidR timings from /usr/bin/time in the logs: ref_full = metrics_set3, ref_subset = only the lidRmetrics
+    functions the 24 metrics need (validation/ref_lidr_subset.R)."""
     out = {}
     for m in ("09LC9423", "09MC0523"):
-        txt = (VAL / "ref_full" / f"{m}.log").read_text(errors="ignore")
+        txt = (VAL / folder / f"{m}.log").read_text(errors="ignore")
         tot = float(re.search(r"([\d.]+) s (\d+) KB", txt).group(1))
         rss = int(re.search(r"([\d.]+) s (\d+) KB", txt).group(2)) / 1024 ** 2
         a = re.search(r"area_s ([\d.]+) tree_s ([\d.]+)", txt)
@@ -246,9 +250,11 @@ def fig_single(single):
     d = base[base.mesh == "09LC9423"].set_index("backend")
     order = ["cupy", "torch-cuda", "torch-cuda32", "numpy", "torch-cpu"]
     fig, axs = plt.subplots(1, 2, figsize=(7.1, 2.5), gridspec_kw={"width_ratios": [1, 1.1]})
-    tot = [d.loc[b, "seconds"] for b in order] + [ld["09LC9423"]["seconds"]]
-    labs = [BLABEL[b].replace("\n", " ") for b in order] + ["lidR + lidRmetrics (R, 1 core)"]
-    cols = [BCOL[b] for b in order] + [BCOL["lidR"]]
+    ls_ = lidr_times("ref_subset")
+    tot = [d.loc[b, "seconds"] for b in order] + [ls_["09LC9423"]["seconds"], ld["09LC9423"]["seconds"]]
+    labs = [BLABEL[b].replace("\n", " ") for b in order] + ["lidR, 24 metrics (R, 1 core)",
+                                                            "lidR, metrics_set3 (R, 1 core)"]
+    cols = [BCOL[b] for b in order] + ["#8c8a83", BCOL["lidR"]]
     y = np.arange(len(tot))
     axs[0].barh(y, tot, color=cols, height=0.62)
     for i, v in enumerate(tot):
@@ -421,7 +427,7 @@ def tables(res, cells, single, thr, mb):
                  "points per m²": "52–133", "use": "canopyLazR (10 m and 5 m grids)"})
     write_table(pd.DataFrame(rows), "table2_datasets",
                 "Table 2. Validation data (Kanagawa 2024 ALS, Nakatsu River; heights normalized once and written as LAZ)")
-    t3 = (res.assign(exact=lambda d: (d.equal_share == 1) & (d.nan_mismatch == 0))
+    t3 = (res.assign(exact=lambda d: d.equal)
           .groupby(["package", "backend"]).agg(metrics=("metric", "nunique"), exact=("exact", "sum"),
                                                 cells=("n", "max"), max_rel_diff=("max_rel_diff", "max"))
           .reset_index())
@@ -445,7 +451,11 @@ def tables(res, cells, single, thr, mb):
                      "throughput (s per tile, workers)": "; ".join(f"{v:.2f} ({int(w)})" for w, v in zip(t.workers, t.s_per_tile))})
     txt = (VAL / "par" / "lidr_par.log").read_text()
     lsec = float(re.search(r"\): ([\d.]+) s", txt).group(1)) / 8
-    rows.append({"backend": "lidR + lidRmetrics (R)", "one tile, 90.5 M points (s)": ld["09LC9423"]["seconds"],
+    ls_ = lidr_times("ref_subset")
+    rows.append({"backend": "lidR + lidRmetrics, 24 metrics (R)", "one tile, 90.5 M points (s)": ls_["09LC9423"]["seconds"],
+                 "one tile, 48.3 M points (s)": ls_["09MC0523"]["seconds"], "peak GPU (GiB)": "–",
+                 "peak RAM (GiB)": round(ls_["09LC9423"]["rss"], 1), "throughput (s per tile, workers)": "–"})
+    rows.append({"backend": "lidR + lidRmetrics, metrics_set3 (R)", "one tile, 90.5 M points (s)": ld["09LC9423"]["seconds"],
                  "one tile, 48.3 M points (s)": ld["09MC0523"]["seconds"], "peak GPU (GiB)": "–",
                  "peak RAM (GiB)": round(ld["09LC9423"]["rss"], 1), "throughput (s per tile, workers)": f"{lsec:.2f} (8)"})
     write_table(pd.DataFrame(rows), "table4_speed",
@@ -459,7 +469,11 @@ def tables(res, cells, single, thr, mb):
         ("findInterval drops a point exactly at an integer zmax", "zentropy", "same rule"),
         ("lidRmetrics rounds z before z > 0.5 (z = 0.5 becomes a 1 m voxel)", "voxel metrics", "voxels from all points"),
         ("Lefsky class with no voxel is NA (left join), not 0", "Lefsky classes", "NA rule"),
-        ("stats::density: linear binning (BinDist), FFT, approx", "kde_peaks_count", "ported"),
+        ("stats::density: BinDist in point order, seq.int, dnorm4, R's own FFT (Singleton), approx1; get_peaks counts both ends of a flat top", "kde_peaks_count", "bit-exact port (density y identical to R)"),
+        ("lidR::LAD uses hist(breaks = c(-Inf, seq(z0, top))) with 1e-7 x median(diff) fuzz (data range when < 3 breaks)", "lad_max, lad_mean, lad_cv", "same fuzzy breaks"),
+        ("metrics_interval uses hist(right = FALSE): the 30 m break is shifted to 30 - 7.5e-7; empty z gives 0", "pz_above_30", "same threshold"),
+        ("metrics_echo drops ReturnNumber <= 0, NumberOfReturns <= 0, ReturnNumber > NumberOfReturns", "p_single, p_last, ratio_last_first", "same filter and denominator"),
+        ("metrics_lad needs > 2 points, metrics_Lmoments 4 L-moments (n >= 4), canopydensity gives 0 for equal heights, entropy NA when every point sits on an integer zmax", "small cells", "same NA / 0 rules"),
         ("lmf: an equal height already tagged as maximum wins (raster order)", "tree tops", "sequential tie pass"),
         ("dalponte2016 updates crown means within a pass; later regions overwrite", "crown area", "numba port"),
         ("knnidw ties: GridPartition visit order + libstdc++ introsort", "filled canopy pixels", "ported, checked vs g++"),

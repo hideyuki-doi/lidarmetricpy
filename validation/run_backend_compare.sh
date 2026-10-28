@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # GPU / CPU comparison on a frozen copy of the package. Low priority: the machine is shared.
 cd "$(dirname "$0")"
 PYTHON=${PYTHON:-python}         # Python with lidarmetricpy installed
@@ -8,9 +9,9 @@ export LIDARMETRICPY_PATH=$SNAP
 mkdir -p backend_compare && rm -f backend_compare/single.csv backend_compare/throughput.csv
 PY="nice -n 10 $PYTHON -W ignore"
 for b in cupy torch-cuda torch-cuda32 numpy torch-cpu; do
-  for m in 09LC9423 09MC0523; do $PY backend_compare.py single $b $m 2>&1 | grep -v ca_bundle; done
+  for m in 09LC9423 09MC0523; do $PY backend_compare.py single $b $m 2>&1 | { grep -v ca_bundle || true; }; done
 done
-for b in cupy numpy; do $PY backend_compare.py single $b 09LC9423 other 2>&1 | grep -v ca_bundle; done
+for b in cupy numpy; do $PY backend_compare.py single $b 09LC9423 other 2>&1 | { grep -v ca_bundle || true; }; done
 $PY backend_compare.py throughput cupy 1 6
 $PY backend_compare.py throughput cupy 4 12
 $PY backend_compare.py throughput cupy 12 12

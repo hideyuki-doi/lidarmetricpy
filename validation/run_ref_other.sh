@@ -1,4 +1,6 @@
 #!/bin/bash
+set -euo pipefail
+PIDS=()
 # all references in the foreground of this script (no pipe subshell, so `wait` waits for them)
 cd "$(dirname "$0")"
 RSCRIPT=${RSCRIPT:-Rscript}      # R with lidR 4.3.3, lidRmetrics 0.1.5 (+ leafR, forestr, ForestGapR, canopyLazR)
@@ -13,6 +15,7 @@ for j in "${JOBS[@]}"; do
   set -- $j
   ( nice -n 10 $RSCRIPT ref_other.R $1 $2 $3 $4 $5 $6 > $6.other.log 2>&1
     nice -n 10 $PYTHON -I ref_pyforestscan.py $1 $2 $3 $4 $5 $6 > $6.pfs.log 2>&1 ) &
+  PIDS+=($!)
 done
-wait
+for p in "${PIDS[@]}"; do wait "$p"; done
 echo ALLDONE

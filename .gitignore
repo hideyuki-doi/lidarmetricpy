@@ -19,3 +19,5 @@ validation/ref/*.other.log
 validation/ref_full/*.other.log
 docs/data/mb_*.parquet
 tests/data/ref/*.log
+validation/ref_subset/*.csv
+validation/ref_subset/*.tif

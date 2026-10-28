@@ -375,6 +375,12 @@ class TorchB:
     def all(self, a):
         return a.all()
 
+    def argmin(self, a):
+        return a.argmin()
+
+    def argmax(self, a):
+        return a.argmax()
+
     def nonzero(self, a):
         return a.nonzero(as_tuple=True)[0]
 

@@ -1,8 +1,10 @@
 # lidarmetricpy
 
-Forest structure metrics from airborne lidar point clouds, **identical to lidR 4.3 + lidRmetrics 0.1.5**
-(and to leafR, PyForestScan, forestr, ForestGapR and canopyLazR for their metrics), on NVIDIA GPUs (CuPy or
-PyTorch), Apple Silicon GPUs (PyTorch MPS, float32) or any CPU (NumPy), with explicit memory budgets.
+Per-cell forest structure metrics from airborne lidar point clouds on NVIDIA GPUs (CuPy or PyTorch), Apple
+Silicon GPUs (PyTorch MPS, float32) or any CPU (NumPy), with explicit memory budgets. With `Options.lidr()` the
+values equal those of **lidR 4.3.3 + lidRmetrics 0.1.5** for the 24 lidRmetrics metrics and the tree summaries
+listed below (and those of leafR, PyForestScan, forestr, ForestGapR and canopyLazR for their metrics), to
+floating-point rounding on every float64 backend.
 
 ```python
 from lidarmetricpy import compute_tile, compute_tiles, Options
@@ -11,10 +13,13 @@ df = compute_tile("tile.laz", x0=-62000, y1=-57750, ncol=40, nrow=30, cell=25,
                   dtm="dtm.tif",            # or None if Z is already height above ground
                   backend="auto",           # cupy | torch-cuda | mps | numpy | torch-cpu
                   gpu_memory_gb=8,          # GPU memory budget (GiB); no effect on CPU backends
-                  cpu_memory_gb=16)         # RAM budget (GiB); large tiles are read in several passes
+                  cpu_memory_gb=16,         # RAM budget (GiB); large tiles are read in several passes
+                  options=Options.lidr())   # lidR-identical settings (see "Preprocessing")
 ```
 
-`df` has one row per 25 m cell that has points (`x`, `y` = cell centre) and one column per metric.
+`df` has one row per cell with at least one point after the preprocessing (`x`, `y` = cell centre), and the
+same columns whatever the data (`lidarmetricpy.api.output_columns(options)`). `n_points` counts the points of
+the cell; `n` counts those above `zmin` and is NA when there is none, as in lidRmetrics.
 `compute_tiles(jobs, workers="auto", gpu_memory_gb=80, cpu_memory_gb=200)` runs many tiles in parallel
 processes that share one GPU; the budgets are totals, split equally between the workers.
 
@@ -39,9 +44,26 @@ Python ≥ 3.10. Core dependencies: numpy, scipy, pandas, laspy with lazrs, numb
 `backend="auto"` takes CuPy if a CUDA device is present, then PyTorch CUDA, then PyTorch MPS, then NumPy.
 Budgets are in GiB (1024³ bytes); `None` uses 70 % of the free GPU memory and 60 % of the free RAM.
 Points are processed in blocks of whole cells, so any budget gives the same values; on a GPU the whole tile
-is prepared on the device when it fits (measured peak ≤ budget from 2 to 16 GiB on a 90 M point tile), otherwise
-points are prepared in RAM and sent block by block. The old argument names `max_memory_gb` / `host_memory_gb`
-still work and give a `DeprecationWarning`.
+is prepared on the device when it fits, otherwise points are prepared in RAM and sent block by block.
+
+What a budget bounds: the point arrays (raw points in RAM, prepared points, LAZ read chunks and the blocks).
+It does not include fixed costs: Python and the libraries, the CUDA context (~0.7 GiB), the canopy raster of
+the tile (8 bytes per 0.5 m pixel, ~24 MB for 1 km × 0.75 km) and its fill, qhull and numba compilation.
+Measured GPU peaks stay under the budget from 2 to 16 GiB on a 90 M point tile (docs/data/memory_budget.csv).
+Budgets below 8 MiB raise `ValueError`. Blocks hold whole cells: a cell holding more points than the budget
+allows is processed as a block of its own, above the budget, with a warning (and `stats["cells_over_budget"]`).
+The old argument names `max_memory_gb` / `host_memory_gb` still work and give a `DeprecationWarning`.
+
+## Preprocessing
+
+The defaults clean the points before the metrics: heights outside `zrange = (-1, 60)` are dropped, and
+`spike_filter` drops the top point of a 1 m column when it is more than 8 m above the next one. lidR does
+neither, so `Options.lidr()` (= `Options(spike_filter=False, zrange=(-inf, inf))`) is the setting to compare
+with lidR; the defaults may remove real trees taller than 60 m or isolated crown tops.
+
+With `dtm=`, heights are z minus the value of the DTM pixel that contains the point (north-up rasters; the
+window is read on the DTM's own pixel grid). Points where the DTM has no data (nodata value, mask, outside the
+raster) are dropped.
 
 ## Grid
 
@@ -53,12 +75,28 @@ every point of the file, which is the same when the file covers the grid.
 
 ## Metrics (per grid cell)
 
-Same definitions and edge cases as `lidRmetrics::metrics_set3` (zmin = 0.5) and the lidR tree workflow
-`rasterize_canopy(p2r(0.15, knnidw()))` → `locate_trees(lmf(ws = 2.5 + 0.15 h, clamped 3–8 m, hmin = 5))` → `dalponte2016()`:
+24 of the 111 outputs of `lidRmetrics::metrics_set3(zmin = 0.5, threshold = c(2, 5, 10, 20, 30),
+zintervals = c(0, 0.5, 2, 5, 10, 20, 30), pixel_size = 1, vox_size = 1)`, with the same definitions and edge
+cases (intensity metrics are not implemented):
 
-zq20, zcv, CRR, zentropy, zpcum7, zpcum9, pz_above_30, L4, Lskew, Lkurt, lad_max, lad_mean, lad_cv,
-p_single, p_last, ratio_last_first, OpenGapSpace, ClosedGapSpace, Euphotic, Oligophotic, vzsd, vzcv,
-kde_peaks_count, rumple, tree_n, tree_h_mean / sd / cv / max / gini / shannon, crown_m2_mean / sd.
+| lidRmetrics function | columns |
+|---|---|
+| metrics_basic | n, zcv |
+| metrics_percentiles | zq20 |
+| metrics_dispersion | CRR, zentropy |
+| metrics_canopydensity | zpcum7, zpcum9 |
+| metrics_interval | pz_above_30 |
+| metrics_Lmoments | L4, Lskew, Lkurt |
+| metrics_lad (lidR::LAD, dz = 1, k = 0.5, z0 = 2) | lad_max, lad_mean, lad_cv |
+| metrics_echo | p_single, p_last, ratio_last_first |
+| metrics_voxels | OpenGapSpace, ClosedGapSpace, Euphotic, Oligophotic, vzsd, vzcv |
+| metrics_kde (bw = 2) | kde_peaks_count |
+| metrics_rumple | rumple |
+
+Tree summaries per cell from the lidR workflow `rasterize_canopy(res = 0.5, p2r(0.15, knnidw()))` →
+`locate_trees(lmf(ws = 2.5 + 0.15 h, clamped 3–8 m, hmin = 5))` → `dalponte2016(th_tree = 2)`:
+tree_n, tree_h_mean / sd / cv / max / gini / shannon, crown_m2_mean / sd (the summaries are ours; tree tops
+and crowns equal lidR's).
 
 Metrics defined by other packages (`Options(other_packages=True)`, the default; `enl` is always computed),
 each equal to the package applied to the points of one cell:
@@ -78,23 +116,37 @@ r = canopylazr_file("raw_tile.laz", xy_res=10, z_res=1, ht_cut=5)   # DataFrame:
 ```
 
 Details reproduced from the R/C++ sources so that results match to floating-point rounding:
-C `round()` (halves away from zero) in `round_any` and in lidR's raster layouts, R's `round(x, 3)`,
-`seq()` / `findInterval` bin edges, `stats::density` (linear binning + FFT), qhull Delaunay (`QbB Qt`) for
-rumple, the lmf tie rule, Dalponte's in-pass updates, and lidR's knn search order with libstdc++
-`std::sort` for knnidw ties. docs/tables/table5_reproduction_details.md lists them.
+C `round()` (halves away from zero) in `round_any` and in lidR's raster layouts (also the per-cell 1 m layout of
+`highest()` for rumple), R's `round(x, 3)`, `seq()` / `findInterval` bin edges, `hist()` boundary fuzz (LAD,
+`metrics_interval`), a bit-exact port of `stats::density` (BinDist in point order, `dnorm`, R's FFT, `approx`)
+for the peak count, qhull Delaunay (`QbB Qt`) for rumple, the lmf tie rule, Dalponte's in-pass updates, and
+lidR's knn search order with libstdc++ `std::sort` for knnidw ties. docs/tables/table5_reproduction_details.md
+lists them.
+
+Known differences: when all heights above zmin in a cell are equal, R's Lmoments package returns rounding noise
+for Lskew and Lkurt (NaN, ±Inf or any number, since L2 = 0); lidarmetricpy returns NA. Float64 backends differ
+from each other by ~1e-14 in sums over many points. The float32 path (Apple MPS) is not exact (see below).
 
 ## Tests
 
 ```bash
 pip install pytest
-pytest            # ~10 s; GPU backends are skipped when not installed
+pytest            # ~20 s; GPU backends are skipped when their device cannot be used
 ```
 
-tests/data holds a synthetic 100 m × 100 m tile (made by tests/make_synthetic.py: tree crowns, multiple
-returns, a gap, an empty cell, points on cell edges) and the reference values of lidR, lidRmetrics, leafR,
-forestr, ForestGapR, PyForestScan and canopyLazR for it (tests/make_references.sh). The tests require every
-float64 backend to reproduce every reference value and tree top, and every memory budget and processing
-path to give identical results.
+- tests/test_reference.py: a synthetic 100 m × 100 m tile (tests/make_synthetic.py: tree crowns, multiple
+  returns, a gap, an empty cell, points on cell edges) against the reference values of lidR, lidRmetrics,
+  leafR, forestr, ForestGapR, PyForestScan and canopyLazR (tests/make_references.sh; versions in
+  tests/data/ref/versions.txt).
+- tests/test_oracle.py: 17 single-cell edge cases (few points, equal heights, invalid returns, heights 1e-12
+  from a break, tall canopies, zmin = 2) against `metrics_set3` run in R (tests/make_oracle.R).
+- tests/test_regressions.py: cells computed together, alone or in blocks must agree (also for grids not aligned
+  with whole metres and cells of 2.5 or 7.3 m); ground-only cells; DTM alignment and missing data; exact hull;
+  sparse clouds; host and device paths; the strict comparator; budgets.
+- tests/test_budgets.py: memory budgets, multi-pass reading and the device / host paths give identical values.
+
+Comparisons use `lidarmetricpy.validate.compare_tables`: unique cell keys, outer join (a missing or extra cell
+fails), the same NA / +Inf / -Inf pattern, then finite values within 1e-6 relative.
 
 ## Validation on real data (validation/, docs/)
 
@@ -103,13 +155,15 @@ not redistributed here; validation/make_testdata.py, make_fulltile.py and make_r
 clips from the original tiles (`PCM_LAZ_DIR`, `PCM_DEM_DIR`). The reference outputs of the R and Python
 packages are included (validation/ref, validation/ref_full).
 
+Checked with the strict comparator (no missing or extra cell, same NA pattern, values within 1e-6 relative):
+
 | data | cells | trees | result |
 |---|---|---|---|
-| 4 clips, 52–133 pts/m² | 400 | 4,275 | 33/33 metrics equal in every cell (max diff 2.3e-12); all tree tops and crown areas equal — cupy, torch-cuda, torch-cpu, numpy |
+| 4 clips, 52–133 pts/m² | 400 | 4,275 | 33/33 metrics equal in every cell (max relative diff 2.4e-12); all tree tops and crown areas equal — cupy, torch-cuda, torch-cpu, numpy |
 | 2 full tiles (90 M and 48 M points) | 2,400 | 23,559 | all metrics, tree tops and crown areas equal (all four float64 backends) |
 | other packages, 4 clips + 2 full tiles | 400 + 2,400 | – | leafR / PyForestScan / forestr ENL / ForestGapR: 17/17 equal on all backends (max diff 3.4e-12) |
 | canopyLazR, 4 raw clips × 10 m and 5 m | 12,600 columns | – | all 9 rasters equal (max diff 3.1e-11) |
-| float32 (MPS-like, tested as torch-cuda32) | 2,800 | 27,834 | trees, crowns and the 17 other-package metrics equal; 27/33 lidRmetrics metrics equal in every cell; zpcum7/9 within 0.03 % points, L4, Lkurt, lad_cv within 1.3e-5, kde_peaks_count off by one peak in 2 cells |
+| float32 (MPS-like, tested as torch-cuda32) | 2,800 | 27,834 | trees, crowns and the 17 other-package metrics equal; 28/33 lidRmetrics metrics equal in every cell (kde_peaks_count is computed in float64); zpcum7/9 within 0.03 % points, L4, Lkurt, lad_cv within 1.3e-5 |
 
 Apple MPS itself has not been run; the float32 path was tested on CUDA. Figures and tables for a methods
 paper are in docs/ (docs/make_paper_figs.py), with notes in Japanese in docs/paper_notes.md.
@@ -117,26 +171,30 @@ paper are in docs/ (docs/make_paper_figs.py), with notes in Japanese in docs/pap
 ## Speed and memory
 
 Measured on an RTX PRO 6000 Blackwell Max-Q 96 GB and an AMD Threadripper PRO 7955WX (16 cores / 32 threads),
-lidRmetrics set + trees, on a frozen copy of the package (validation/backend_compare/).
+lidRmetrics set + trees, on a frozen copy of the package (validation/backend_compare/). lidR was timed twice:
+with `metrics_set3` (111 outputs, validation/ref_lidr.R) and with only the lidRmetrics functions that the 24
+metrics need (validation/ref_lidr_subset.R; same 24 values). Both include reading and the tree workflow.
 
 | one tile, one process (90.5 M / 48.3 M points) | seconds | peak GPU GiB | peak RAM GiB |
 |---|---|---|---|
-| CuPy | 5.2 / 3.6 | 25 / 16 | 2.3 / 2.3 |
-| PyTorch CUDA | 5.1 / 3.4 | 24 / 15 | 2.9 / 2.9 |
-| PyTorch CUDA float32 (MPS-like) | 18.2 / 10.9 | 18 / 11 | 10.4 / 6.4 |
-| NumPy (CPU) | 50.6 / 30.1 | – | 25.7 / 15.5 |
-| PyTorch CPU | 45.5 / 27.6 | – | 26.7 / 16.3 |
-| lidR + lidRmetrics (R, 1 core) | 230.9 / 179.4 | – | 9.6 / 5.3 |
+| CuPy | 5.5 / 3.7 | 28 / 18 | 2.3 / 2.2 |
+| PyTorch CUDA | 5.5 / 3.7 | 25 / 15 | 2.9 / 2.9 |
+| PyTorch CUDA float32 (MPS-like) | 20.5 / 12.1 | 18 / 11 | 11.2 / 6.8 |
+| NumPy (CPU) | 53.5 / 31.2 | – | 24.4 / 14.3 |
+| PyTorch CPU | 47.5 / 27.5 | – | 25.5 / 15.4 |
+| lidR + lidRmetrics, 24 metrics (R, 1 core) | 205.2 / 155.8 | – | 9.6 / 5.3 |
+| lidR + lidRmetrics, metrics_set3 (R, 1 core) | 230.9 / 179.4 | – | 9.6 / 5.3 |
 
 | many tiles | seconds per tile |
 |---|---|
-| CuPy, 1 / 4 / 12 workers | 4.40 / 1.71 / 1.33 |
-| PyTorch CUDA, 12 workers | 1.48 |
-| NumPy, 1 / 4 / 8 / 16 workers | 39.8 / 16.5 / 13.4 / 9.6 |
-| lidR, 8 R processes | 30.5 |
+| CuPy, 1 / 4 / 12 workers | 4.61 / 1.75 / 1.43 |
+| PyTorch CUDA, 12 workers | 1.53 |
+| NumPy, 1 / 4 / 8 / 16 workers | 41.8 / 18.1 / 14.6 / 10.5 |
+| lidR (metrics_set3), 8 R processes | 30.5 |
 
 lidR on all cores was not measured. On the GPU path the GPU work is ~1 s per dense tile; the rest is CPU
-work. LAZ decoding alone costs 23 CPU-seconds per dense tile and is the floor for throughput.
+work (LAZ decoding alone costs 23 CPU-seconds per dense tile and is the floor for throughput; the exact
+`density()` port for kde_peaks_count runs on the CPU, 0.33 s measured on the dense tile).
 
 ## License
 

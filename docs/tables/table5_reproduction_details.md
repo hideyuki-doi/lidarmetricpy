@@ -10,7 +10,11 @@
 | findInterval drops a point exactly at an integer zmax | zentropy | same rule |
 | lidRmetrics rounds z before z > 0.5 (z = 0.5 becomes a 1 m voxel) | voxel metrics | voxels from all points |
 | Lefsky class with no voxel is NA (left join), not 0 | Lefsky classes | NA rule |
-| stats::density: linear binning (BinDist), FFT, approx | kde_peaks_count | ported |
+| stats::density: BinDist in point order, seq.int, dnorm4, R's own FFT (Singleton), approx1; get_peaks counts both ends of a flat top | kde_peaks_count | bit-exact port (density y identical to R) |
+| lidR::LAD uses hist(breaks = c(-Inf, seq(z0, top))) with 1e-7 x median(diff) fuzz (data range when < 3 breaks) | lad_max, lad_mean, lad_cv | same fuzzy breaks |
+| metrics_interval uses hist(right = FALSE): the 30 m break is shifted to 30 - 7.5e-7; empty z gives 0 | pz_above_30 | same threshold |
+| metrics_echo drops ReturnNumber <= 0, NumberOfReturns <= 0, ReturnNumber > NumberOfReturns | p_single, p_last, ratio_last_first | same filter and denominator |
+| metrics_lad needs > 2 points, metrics_Lmoments 4 L-moments (n >= 4), canopydensity gives 0 for equal heights, entropy NA when every point sits on an integer zmax | small cells | same NA / 0 rules |
 | lmf: an equal height already tagged as maximum wins (raster order) | tree tops | sequential tie pass |
 | dalponte2016 updates crown means within a pass; later regions overwrite | crown area | numba port |
 | knnidw ties: GridPartition visit order + libstdc++ introsort | filled canopy pixels | ported, checked vs g++ |

@@ -12,6 +12,7 @@ import pandas as pd
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent))
 from lidarmetricpy import Options, compute_tile  # noqa: E402
+from refcheck import check  # noqa: E402
 
 OTHER = ["leafr_lai", "leafr_lahv", "leafr_lahv_laiw", "leafr_lahv_hw", "leafr_lahv_laiw_hw", "leafr_fhd",
          "leafr_fhd_even", "leafr_gs", "leafr_gs_even", "leafr_gc", "enl", "gap_frac", "gap_n", "gap_area_mean"]
@@ -30,27 +31,23 @@ def run(backend, full=False):
         df = compute_tile(str(HERE / c["file"]), c["x0"], c["y1"], c["ncol"], c["nrow"], backend=backend,
                           options=Options(spike_filter=False, zrange=(-np.inf, np.inf)))
         ref = pd.read_csv(p1).merge(pd.read_csv(p2), on=["x", "y"], how="outer")
-        m = ref.merge(df, on=["x", "y"], how="left", suffixes=("_r", "_p"))
-        m["mesh"] = c["mesh"]
-        rows.append(m)
-    m = pd.concat(rows, ignore_index=True)
-    res = []
-    for k in OTHER + PFS:
-        a, b = m[k + "_r"], m[k + "_p"]
-        both = a.notna() & b.notna()
-        d = (a[both] - b[both]).abs()
-        tol = 1e-6 * np.maximum(1, a[both].abs())
-        res.append({"metric": k, "n": int(both.sum()), "nan_mismatch": int((a.isna() != b.isna()).sum()),
-                    "max_abs_diff": float(d.max()) if len(d) else np.nan,
-                    "equal_share": float(((d <= tol) | (a[both] == b[both])).mean()) if len(d) else np.nan})
-    res = pd.DataFrame(res)
+        r = check(ref, df, OTHER + PFS, cells_ref=pd.read_csv(HERE / refdir / f"{c['mesh']}_cells.csv"))
+        r["mesh"] = c["mesh"]
+        rows.append(r)
+    allres = pd.concat(rows, ignore_index=True)
+    res = allres.groupby("metric", sort=False).agg(
+        missing=("missing", "sum"), extra=("extra", "sum"), class_mismatch=("class_mismatch", "sum"),
+        value_mismatch=("value_mismatch", "sum"), n_finite=("n_finite", "sum"), max_abs_diff=("max_abs_diff", "max"),
+        max_rel_diff=("max_rel_diff", "max"), equal=("equal", "all")).reset_index()
     res.to_csv(HERE / f"compare_other_{backend}{'_full' if full else ''}.csv", index=False)
     print(f"== {backend}{' (full tiles)' if full else ''}")
     print(res.to_string(index=False))
-    return m
+    return bool(res.equal.all())
 
 
 if __name__ == "__main__":
     args = [a for a in sys.argv[1:] if a != "--full"]
+    ok = True
     for b in args or ["cupy"]:
-        run(b, full="--full" in sys.argv)
+        ok &= run(b, full="--full" in sys.argv)
+    sys.exit(0 if ok else 1)

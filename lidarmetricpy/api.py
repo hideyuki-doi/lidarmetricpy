@@ -30,10 +30,10 @@ from dataclasses import dataclass, replace
 import numpy as np
 import pandas as pd
 
-from .area import area_metrics, rumple_cells, rumple_pixels, rumple_select
-from .extra import extra_metrics, gap_metrics
+from .area import AREA_COLUMNS, area_metrics, rumple_cells, rumple_pixels, rumple_select
+from .extra import EXTRA_COLUMNS, GAP_COLUMNS, extra_metrics, gap_metrics
 from .backend import get_backend
-from .trees import CanopyAccumulator, CanopyLayout, local_maxima, tree_metrics
+from .trees import TREE_COLUMNS, CanopyAccumulator, CanopyLayout, local_maxima, tree_metrics
 
 BYTES_PER_POINT = {64: 420, 32: 260}      # device working set per point (measured on 6–90 M point blocks, + margin)
 HOST_BYTES_PER_POINT = 23                  # raw points kept on the host (X, Y, Z int32, returns, order, mask)
@@ -43,6 +43,9 @@ DEVICE_CHUNK_BYTES = 100                   # per point of one read / filter slic
 DEVICE_KEEP_BYTES = 40                     # per point kept during the blocks (the above + cell row / column int32)
 DEVICE_SLACK = 0.5 * 1024 ** 3             # memory-pool fragmentation and per-block arrays (measured 0.3–0.4 GiB)
 HOST_BLOCK_BYTES = 170                     # host working set per point of the block being processed
+HOST_READ_BYTES = 64                       # per point of one LAZ read chunk (decoded record + coordinates)
+MIN_BUDGET_GB = 1 / 128                    # 8 MiB: smaller budgets are refused
+MIN_BLOCK_POINTS = 1000
 
 
 @dataclass
@@ -79,6 +82,12 @@ class Options:
     laz_threads: str = "auto"          # "parallel" | "single" | "auto" (= parallel lazrs decoder; measured fastest)
     closed_edges: bool = True          # points exactly on the right / bottom outer edge belong to the last column /
     #                                    row, as in lidR (terra); False: half-open grid, for tiles that share edges
+
+    @classmethod
+    def lidr(cls, **kw):
+        """The settings under which the results equal lidR / lidRmetrics on the same points: no height range
+        and no spike filter (lidarmetricpy's own preprocessing, on by default, removes points that lidR keeps)."""
+        return cls(**{"spike_filter": False, "zrange": (-np.inf, np.inf), **kw})
 
 
 def _in_grid(x, y, grid, closed):
@@ -162,32 +171,52 @@ def _read(source, grid, opt, rows_keep=None):
 
 
 def _dtm_window(dtm, grid):
+    """The DTM pixels covering the grid (plus one pixel), on the DTM's own pixel grid, as float64 with NaN
+    where the DTM has no data (nodata, mask, or outside the raster). Returns (array, x of the left edge,
+    y of the top edge, x resolution, y resolution); a point takes the value of the DTM pixel that contains it."""
     import rasterio
-    from rasterio.windows import from_bounds
+    from rasterio.windows import Window, from_bounds
     with rasterio.open(dtm) as s:
-        win = from_bounds(grid.x0, grid.y0, grid.x1, grid.y1, s.transform)
-        a = s.read(1, window=win, boundless=True, fill_value=np.nan).astype(np.float64)
-        tr = s.window_transform(win)
-        nod = s.nodata
-    if nod is not None:
-        a[a == nod] = np.nan
-    a[a < -9000] = np.nan
+        t = s.transform
+        if t.b != 0 or t.d != 0 or t.a <= 0 or t.e >= 0:
+            raise ValueError("the DTM must be north-up without rotation")
+        w = from_bounds(grid.x0, grid.y0, grid.x1, grid.y1, t)
+        c0, r0 = math.floor(w.col_off) - 1, math.floor(w.row_off) - 1
+        c1, r1 = math.ceil(w.col_off + w.width) + 1, math.ceil(w.row_off + w.height) + 1
+        a = np.full((r1 - r0, c1 - c0), np.nan)
+        rr0, cc0, rr1, cc1 = max(r0, 0), max(c0, 0), min(r1, s.height), min(c1, s.width)
+        if rr1 > rr0 and cc1 > cc0:
+            d = s.read(1, window=Window(cc0, rr0, cc1 - cc0, rr1 - rr0), masked=True)
+            a[rr0 - r0:rr1 - r0, cc0 - c0:cc1 - c0] = np.ma.filled(d.astype(np.float64), np.nan)
+        tr = s.window_transform(Window(c0, r0, c1 - c0, r1 - r0))
+    a[a < -9000] = np.nan                     # undeclared nodata such as -9999
     return a, tr.c, tr.f, tr.a, -tr.e
 
 
 # ------------------------------------------------------------------ planning
-def plan_blocks(row_counts, ncol, budget_points):
+def plan_blocks(row_counts, ncol, budget_points, cell_counts=None):
     """Group rows of cells into blocks of at most budget_points; split a row by columns if needed.
-    Returns a list of (row0, row1, col0, col1)."""
+    cell_counts (rows × ncol, optional) lets a crowded row be split by the points of each cell; a single cell
+    above the budget then forms a block of its own (it cannot be split). Returns a list of (row0, row1, col0, col1)."""
     blocks = []
     r = 0
     n = len(row_counts)
     while r < n:
         if row_counts[r] > budget_points:
-            parts = math.ceil(row_counts[r] / budget_points)
-            w = math.ceil(ncol / parts)
-            for c0 in range(0, ncol, w):
-                blocks.append((r, r + 1, c0, min(ncol, c0 + w)))
+            if cell_counts is None:
+                parts = math.ceil(row_counts[r] / budget_points)
+                w = math.ceil(ncol / parts)
+                for c0 in range(0, ncol, w):
+                    blocks.append((r, r + 1, c0, min(ncol, c0 + w)))
+            else:
+                c0, tot = 0, 0
+                for c in range(ncol):
+                    v = int(cell_counts[r][c])
+                    if c > c0 and tot + v > budget_points:
+                        blocks.append((r, r + 1, c0, c))
+                        c0, tot = c, 0
+                    tot += v
+                blocks.append((r, r + 1, c0, ncol))
             r += 1
             continue
         tot, r1 = 0, r
@@ -221,6 +250,9 @@ def _budget_args(B, gpu_memory_gb, cpu_memory_gb, max_memory_gb, host_memory_gb)
     if gpu_memory_gb is not None and B.device == "cpu":
         warnings.warn(f"gpu_memory_gb has no effect on the {B.name} CPU backend; use cpu_memory_gb", stacklevel=3)
         gpu_memory_gb = None
+    for name, v in (("gpu_memory_gb", gpu_memory_gb), ("cpu_memory_gb", cpu_memory_gb)):
+        if v is not None and v < MIN_BUDGET_GB:
+            raise ValueError(f"{name} = {v} GiB is below the smallest supported budget ({MIN_BUDGET_GB} GiB = 8 MiB)")
     return gpu_memory_gb, cpu_memory_gb
 
 
@@ -291,15 +323,17 @@ def _compute_tile(source, x0, y1, ncol, nrow, cell, dtm, B, gpu_memory_gb, cpu_m
         step = math.ceil(nrow / k)
         passes = [(r, min(nrow, r + step)) for r in range(0, nrow, step)]
     raw_kept = raw / len(passes)
-    host_pts = max(500_000, int((host_budget - raw_kept) / HOST_BLOCK_BYTES))
+    host_pts = max(MIN_BLOCK_POINTS, int((host_budget - raw_kept) / HOST_BLOCK_BYTES))
+    # LAZ is decoded in chunks that also fit the RAM budget
+    read_opt = replace(opt, chunk_points=min(opt.chunk_points, max(10_000, int(0.25 * host_budget / HOST_READ_BYTES))))
     if B.name == "numpy" or (B.name == "torch" and B.device in ("cpu", "mps")):
         # device memory is host memory: one budget for both
-        dev_pts = max(500_000, int((host_budget - raw_kept) / (HOST_BLOCK_BYTES + BYTES_PER_POINT[_fbits(B)])))
+        dev_pts = max(MIN_BLOCK_POINTS, int((host_budget - raw_kept) / (HOST_BLOCK_BYTES + BYTES_PER_POINT[_fbits(B)])))
         if gpu_memory_gb is not None:                       # Apple MPS: GPU budget within the shared RAM
             dev_pts = min(dev_pts, int(gpu_memory_gb * 1024 ** 3 / (HOST_BLOCK_BYTES + BYTES_PER_POINT[_fbits(B)])))
         budget_pts = dev_pts
     else:
-        budget_pts = min(host_pts, max(500_000, int(_device_budget(B, gpu_memory_gb) / BYTES_PER_POINT[_fbits(B)])))
+        budget_pts = min(host_pts, max(MIN_BLOCK_POINTS, int(_device_budget(B, gpu_memory_gb) / BYTES_PER_POINT[_fbits(B)])))
     dtm_a = _dtm_window(dtm, grid) if dtm is not None else None
     stats = {"blocks": 0, "points": 0, "passes": len(passes), "budget_points": budget_pts,
              "backend": f"{B.name}:{B.device}"}
@@ -316,7 +350,7 @@ def _compute_tile(source, x0, y1, ncol, nrow, cell, dtm, B, gpu_memory_gb, cpu_m
         stats["budget_points"] = block_pts
         results, acc, npts = _device_tile(source, grid, replace(opt, chunk_points=chunk_pts), B, dtm_a, T,
                                           block_pts)
-        stats.update(blocks=len(results), points=npts, passes=1)
+        stats.update(blocks=len(results), points=npts, passes=1, cells_over_budget=T.pop("cells_over_budget", 0))
         B.free()
         return _finish(results, acc, B, grid, opt, nrow, ncol, cell, stats, T, t0, verbose, return_trees)
     stats["path"] = "host"
@@ -327,7 +361,7 @@ def _compute_tile(source, x0, y1, ncol, nrow, cell, dtm, B, gpu_memory_gb, cpu_m
     bk = None
     for p0, p1 in passes:
         t = time.time()
-        bk, meta = _read(source, grid, opt, None if len(passes) == 1 else (p0, p1))
+        bk, meta = _read(source, grid, read_opt, None if len(passes) == 1 else (p0, p1))
         T["read"] += time.time() - t
         t = time.time()
         for r in range(p0, p1):
@@ -351,10 +385,20 @@ def _compute_tile(source, x0, y1, ncol, nrow, cell, dtm, B, gpu_memory_gb, cpu_m
     for p0, p1 in passes:
         if bk is None:
             t = time.time()
-            bk, meta = _read(source, grid, opt, (p0, p1))
+            bk, meta = _read(source, grid, read_opt, (p0, p1))
             T["read"] += time.time() - t
         counts = [int(masks[r].sum()) if r in masks else 0 for r in range(p0, p1)]
-        for (r0, r1, c0, c1) in plan_blocks(counts, ncol, budget_pts):
+        ccounts = []
+        for r in range(p0, p1):
+            cc_ = np.zeros(ncol, np.int64)
+            if r in masks and counts[r - p0] > budget_pts:          # per-cell counts only for crowded rows
+                P = bk.rows(r)
+                xr_ = _xyz(P, meta)[0][masks[r]]
+                cc_ = np.bincount(np.minimum(np.floor((xr_ - grid.x0) / cell).astype(np.int64), ncol - 1),
+                                  minlength=ncol)
+            ccounts.append(cc_)
+        stats["cells_over_budget"] = stats.get("cells_over_budget", 0) + int(sum((c > budget_pts).sum() for c in ccounts))
+        for (r0, r1, c0, c1) in plan_blocks(counts, ncol, budget_pts, ccounts):
             t = time.time()
             r0, r1 = r0 + p0, r1 + p0
             xs, ys, zs, Ps = [], [], [], []
@@ -388,7 +432,12 @@ def _compute_tile(source, x0, y1, ncol, nrow, cell, dtm, B, gpu_memory_gb, cpu_m
 
 
 def _finish(results, acc, B, grid, opt, nrow, ncol, cell, stats, T, t0, verbose, return_trees):
-    df = pd.concat(results, ignore_index=True) if results else pd.DataFrame({"x": [], "y": []})
+    cols = output_columns(opt)
+    if stats.get("cells_over_budget", 0):
+        import warnings
+        warnings.warn(f"{stats['cells_over_budget']} cell(s) hold more points than the memory budget allows for one "
+                      "block; each was processed as a block of its own, above the budget", stacklevel=3)
+    df = pd.concat(results, ignore_index=True) if results else pd.DataFrame({c: [] for c in cols}, dtype=float)
     tops = None
     if acc is not None:
         t = time.time()
@@ -401,9 +450,10 @@ def _finish(results, acc, B, grid, opt, nrow, ncol, cell, stats, T, t0, verbose,
                                   threshold=opt.gap_threshold, size=opt.gap_size))
         ii = np.arange(nrow * ncol)
         tdf = pd.DataFrame({"x": grid.x0 + (ii % ncol + 0.5) * cell, "y": grid.y1 - (ii // ncol + 0.5) * cell, **tm})
-        df = df.merge(tdf, on=["x", "y"], how="left") if len(df) else tdf
+        df = df.merge(tdf, on=["x", "y"], how="left")       # tree / gap metrics of the cells with points
         tops = (chm, acc.L, tops)
         T["trees"] += time.time() - t
+    df = df.reindex(columns=cols).sort_values(["y", "x"], ascending=[False, True], ignore_index=True)
     stats["seconds"] = round(time.time() - t0, 2)
     stats["stage_seconds"] = {k: round(v, 2) for k, v in T.items()}
     if verbose:
@@ -412,9 +462,19 @@ def _finish(results, acc, B, grid, opt, nrow, ncol, cell, stats, T, t0, verbose,
     return (df, tops) if return_trees else df
 
 
+def _spike_key(x, y, grid):
+    """1 m column of the spike filter: whole metres from the grid's top-left corner, split at the edges of the
+    rows of cells, so that the host path (row of cells by row of cells) and the device path agree for any
+    cell size. Same key as in _spike_filter_dev."""
+    crow = np.minimum(np.floor((grid.y1 - y) / grid.cell).astype(np.int64), grid.nrow - 1)
+    r = np.floor(grid.y1 - y).astype(np.int64)
+    c = np.floor(x - grid.x0).astype(np.int64)
+    return (crow * 1_000_000 + r) * 1_000_000 + c
+
+
 def _spike_filter(x, y, z, grid):
     """Top point of a 1 m column more than 8 m above the second highest → noise."""
-    col = np.floor(grid.y1 - y).astype(np.int64) * 100000 + np.floor(x - grid.x0).astype(np.int64)
+    col = _spike_key(x, y, grid)
     o = np.lexsort((z, col))
     cs, hs = col[o], z[o]
     last = np.r_[cs[1:] != cs[:-1], True]
@@ -447,7 +507,6 @@ def _block(B, grid, opt, x, y, z, P, r0, r1, c0, c1, T=None, acc=None):
     ncell = nr_ * nc_
     bx0 = math.floor(grid.x0 + c0 * cell) - 2
     by0 = math.floor(grid.y1 - r1 * cell) - 2
-    bw = int(math.ceil(nc_ * cell)) + 4
     i64 = B.i64
     row = np.minimum(np.floor((grid.y1 - y) / cell).astype(np.int32), grid.nrow - 1)     # closed outer edges
     col = np.minimum(np.floor((x - grid.x0) / cell).astype(np.int32), grid.ncol - 1)
@@ -456,9 +515,7 @@ def _block(B, grid, opt, x, y, z, P, r0, r1, c0, c1, T=None, acc=None):
     vx = B.astype(B.asarray((_round_away(x) - bx0).astype(np.int32)), i64)
     vy = B.astype(B.asarray((_round_away(y) - by0).astype(np.int32)), i64)
     from .backend import NumpyLike
-    pr, pc = rumple_pixels(NumpyLike(np, "numpy"), cid_h.astype(np.int64), x, y, ncell)
-    pid = B.asarray(((pr - pr.min()) * bw + (pc - pc.min())).astype(np.int64))
-    del pr, pc
+    pid = B.asarray(rumple_pixels(NumpyLike(np, "numpy"), cid_h.astype(np.int64), x, y, ncell))
     cid = B.astype(B.asarray(cid_h), i64)
     zd = B.asarray(z)
     rn = B.astype(B.asarray(P["rn"]), i64)
@@ -467,6 +524,7 @@ def _block(B, grid, opt, x, y, z, P, r0, r1, c0, c1, T=None, acc=None):
     del vx, vy, rn, nr
     if opt.other_packages:
         m.update(extra_metrics(B, cid, zd, ncell))
+    m["n_points"] = B.to_numpy(B.bincount(cid, minlength=ncell)).astype(np.float64)
     t = time.time()
     sel = rumple_select(B, cid, zd, pid, B.asarray(P["order"]))
     m["rumple"] = rumple_cells(cid_h[sel], x[sel], y[sel], z[sel], ncell, threads=opt.threads)
@@ -478,12 +536,25 @@ def _block(B, grid, opt, x, y, z, P, r0, r1, c0, c1, T=None, acc=None):
 
 
 def _cells_frame(grid, m, r0, r1, c0, c1):
+    """Rows of the cells of a block that have at least one point after the preprocessing."""
     nc_ = c1 - c0
     ii = np.arange((r1 - r0) * nc_)
     gr = r0 + ii // nc_
     gc = c0 + ii % nc_
     df = pd.DataFrame({"x": grid.x0 + (gc + 0.5) * grid.cell, "y": grid.y1 - (gr + 0.5) * grid.cell, **m})
-    return df[df.n > 0]
+    return df[df.n_points > 0]
+
+
+def output_columns(opt):
+    """Columns of compute_tile's table for these options (fixed, whatever the data)."""
+    cols = ["x", "y", "n_points", "n"] + list(AREA_COLUMNS) + ["rumple"]
+    if opt.other_packages:
+        cols += list(EXTRA_COLUMNS)
+    if opt.trees:
+        cols += list(TREE_COLUMNS)
+        if opt.other_packages:
+            cols += list(GAP_COLUMNS)
+    return cols
 
 
 def _block_dev(B, grid, opt, xd, yd, zd, rnd, nrd, ordd, r0, r1, c0, c1, T=None, acc=None):
@@ -494,7 +565,6 @@ def _block_dev(B, grid, opt, xd, yd, zd, rnd, nrd, ordd, r0, r1, c0, c1, T=None,
     ncell = nr_ * nc_
     bx0 = math.floor(grid.x0 + c0 * cell) - 2
     by0 = math.floor(grid.y1 - r1 * cell) - 2
-    bw = int(math.ceil(nc_ * cell)) + 4
     i64 = B.i64
     row = B.clip(B.astype(B.floor(B.sdiv(grid.y1 - yd, cell)), i64), 0, grid.nrow - 1)    # closed outer edges
     col = B.clip(B.astype(B.floor(B.sdiv(xd - grid.x0, cell)), i64), 0, grid.ncol - 1)
@@ -502,14 +572,13 @@ def _block_dev(B, grid, opt, xd, yd, zd, rnd, nrd, ordd, r0, r1, c0, c1, T=None,
     del row, col
     vx = B.astype(B.round_away(xd), i64) - bx0           # lidR:::round_any → C round()
     vy = B.astype(B.round_away(yd), i64) - by0
-    pr, pc = rumple_pixels(B, cid, xd, yd, ncell)           # 1 m pixels of highest(1), per cell layout
-    pid = B.astype((pr - B.amin(pr)) * bw + (pc - B.amin(pc)), i64)
-    del pr, pc
+    pid = rumple_pixels(B, cid, xd, yd, ncell)              # (cell, 1 m pixel) ids of highest(1)
     m = area_metrics(B, cid, zd, B.astype(rnd, i64), B.astype(nrd, i64), vx, vy, ncell,
                      zmin=opt.zmin, bw=opt.kde_bw)
     del vx, vy
     if opt.other_packages:
         m.update(extra_metrics(B, cid, zd, ncell))
+    m["n_points"] = B.to_numpy(B.bincount(cid, minlength=ncell)).astype(np.float64)
     t = time.time()
     sel = rumple_select(B, cid, zd, pid, ordd)
     del pid
@@ -567,7 +636,10 @@ def _spike_filter_dev(B, grid, opt, P):
         idx = B.nonzero((r >= rmin + b0) & (r < rmin + b1))    # increasing: file position order kept
         if int(idx.shape[0]) < 2:
             continue
-        col = B.astype(r[idx], B.i64) * 100000 + B.astype(B.floor(x[idx] - grid.x0), B.i64)
+        yi = y[idx]
+        crow = B.minimum(B.astype(B.floor(B.sdiv(grid.y1 - yi, grid.cell)), B.i64), grid.nrow - 1)
+        col = (crow * 1_000_000 + B.astype(r[idx], B.i64)) * 1_000_000 + B.astype(B.floor(x[idx] - grid.x0), B.i64)
+        del yi
         zz = z[idx]
         o = B.lexsort([zz, col])
         cs = col[o]
@@ -689,8 +761,15 @@ def _device_tile(source, grid, opt, B, dtm_a, T, block_pts):
             col[s0:s1] = B.clip(B.astype(B.floor(B.sdiv(x[s0:s1] - grid.x0, grid.cell)), B.i32), 0, grid.ncol - 1)
         B.free()
         counts = [int(v) for v in B.to_numpy(B.bincount(row, minlength=grid.nrow))]
+        ccounts = np.zeros(grid.nrow * grid.ncol, np.int64)
+        for s0 in range(0, npts, max(1, opt.chunk_points)):                  # in slices: bounded temporaries
+            s1 = min(npts, s0 + opt.chunk_points)
+            ccounts += B.to_numpy(B.bincount(B.astype(row[s0:s1], B.i64) * grid.ncol + B.astype(col[s0:s1], B.i64),
+                                             minlength=grid.nrow * grid.ncol))
+        ccounts = ccounts.reshape(grid.nrow, grid.ncol)
+        T["cells_over_budget"] = int((ccounts > block_pts).sum())
         frames = []
-        for (r0, r1, c0, c1) in plan_blocks(counts, grid.ncol, block_pts):
+        for (r0, r1, c0, c1) in plan_blocks(counts, grid.ncol, block_pts, ccounts):
             m = (row >= r0) & (row < r1) & (col >= c0) & (col < c1)
             if not bool(B.item(B.sum(B.astype(m, B.i64)) > 0)):
                 continue
@@ -746,11 +825,14 @@ def compute_tiles(jobs, workers="auto", backend="auto", gpu_memory_gb=None, cpu_
             fit = min(_device_budget(B, gpu_memory_gb) // (ppt * BYTES_PER_POINT[_fbits(B)]),
                       ram // (ppt * (HOST_BYTES_PER_POINT + HOST_BLOCK_BYTES)))
         workers = int(max(1, min((os.cpu_count() or 2) // 2, fit)))
-    kw = dict(kw, backend=backend, cpu_memory_gb=max(0.5, ram / 1024 ** 3 / workers))
+    kw = dict(kw, backend=backend, cpu_memory_gb=ram / 1024 ** 3 / workers)
     if B.device != "cpu":
         # each process also holds a CUDA context and allocator slack (~0.7 GiB) outside the budget
         total = _device_budget(B, gpu_memory_gb)
-        kw["gpu_memory_gb"] = max(0.5, (total / 1024 ** 3) / workers - (0.7 if B.device == "cuda" else 0.0))
+        kw["gpu_memory_gb"] = (total / 1024 ** 3) / workers - (0.7 if B.device == "cuda" else 0.0)
+    for k_ in ("cpu_memory_gb", "gpu_memory_gb"):
+        if k_ in kw and kw[k_] < MIN_BUDGET_GB:
+            raise ValueError(f"{k_} per worker = {kw[k_]:.4f} GiB is below {MIN_BUDGET_GB} GiB; use fewer workers")
     # decode_threads: limit the parallel LAZ decoder per worker (None = let every worker use all cores,
     # which measured fastest: 1.2 s vs 1.4 s per tile with 12 workers on 32 cores)
     threads = kw.pop("decode_threads", None)

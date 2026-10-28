@@ -11,11 +11,11 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from scipy.stats import spearmanr
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent))
 from lidarmetricpy import Options, compute_tile  # noqa: E402
+from refcheck import check  # noqa: E402
 
 METRICS = ["zq20", "zcv", "CRR", "zentropy", "zpcum7", "zpcum9", "pz_above_30", "L4", "Lskew", "Lkurt",
            "lad_max", "lad_mean", "lad_cv", "p_single", "p_last", "ratio_last_first", "OpenGapSpace",
@@ -38,9 +38,9 @@ def run(backend):
                                                     backend=backend, options=opt, return_trees=True)
         times.append({"mesh": c["mesh"], "points": c["n"], "seconds": time.time() - t})
         ref = pd.read_csv(refp)
-        m = ref.merge(df, on=["x", "y"], suffixes=("_r", "_p"))
-        m["mesh"] = c["mesh"]
-        rows.append(m)
+        res_c = check(ref, df, METRICS)
+        res_c["mesh"] = c["mesh"]
+        rows.append(res_c)
         # tree tops
         rt = pd.read_csv(HERE / "ref" / f"{c['mesh']}_trees.csv")
         pt = pd.DataFrame({"x": L.xmin + (cc + 0.5) * L.res, "y": L.ymax - (rr + 0.5) * L.res,
@@ -49,21 +49,11 @@ def run(backend):
         trees.append({"mesh": c["mesh"], "ref": len(rt), "pc": len(pt), "both": int((j._merge == "both").sum()),
                       "crown_equal": int((np.abs(j.crown_m2_r - j.crown_m2_p) < 1e-9).sum()),
                       "h_equal": int((np.abs(j.h_r - j.h_p) < 1e-9).sum())})
-    m = pd.concat(rows, ignore_index=True)
-    res = []
-    for k in METRICS:
-        a, b = m[f"{k}_r"] if f"{k}_r" in m else m.get(k), m[f"{k}_p"] if f"{k}_p" in m else None
-        if a is None or b is None:
-            res.append({"metric": k, "n": 0})
-            continue
-        both = a.notna() & b.notna()
-        nan_mismatch = int((a.isna() != b.isna()).sum())
-        d = (a[both] - b[both]).abs()
-        tol = 1e-6 * np.maximum(1, a[both].abs())
-        rho = spearmanr(a[both], b[both]).statistic if both.sum() > 2 and a[both].nunique() > 1 else np.nan
-        res.append({"metric": k, "n": int(both.sum()), "nan_mismatch": nan_mismatch, "max_abs_diff": d.max(),
-                    "equal_share": float(((d <= tol) | (a[both] == b[both])).mean()), "spearman": rho})
-    res = pd.DataFrame(res)
+    allres = pd.concat(rows, ignore_index=True)
+    res = allres.groupby("metric", sort=False).agg(
+        missing=("missing", "sum"), extra=("extra", "sum"), class_mismatch=("class_mismatch", "sum"),
+        value_mismatch=("value_mismatch", "sum"), n_finite=("n_finite", "sum"), max_abs_diff=("max_abs_diff", "max"),
+        max_rel_diff=("max_rel_diff", "max"), equal=("equal", "all")).reset_index()
     res.to_csv(HERE / f"compare_{backend}.csv", index=False)
     pd.DataFrame(trees).to_csv(HERE / f"compare_trees_{backend}.csv", index=False)
     pd.DataFrame(times).to_csv(HERE / f"time_{backend}.csv", index=False)
@@ -71,8 +61,14 @@ def run(backend):
     print(res.to_string(index=False))
     print(pd.DataFrame(trees).to_string(index=False))
     print(pd.DataFrame(times).to_string(index=False))
+    t = pd.DataFrame(trees)
+    trees_ok = bool((t.ref == t.pc).all() and (t.both == t.ref).all() and (t.crown_equal == t.ref).all()
+                    and (t.h_equal == t.ref).all())
+    return bool(res.equal.all()) and trees_ok
 
 
 if __name__ == "__main__":
+    ok = True
     for b in sys.argv[1:] or ["cupy", "numpy", "torch-cuda", "torch-cpu"]:
-        run(b)
+        ok &= run(b)
+    sys.exit(0 if ok else 1)

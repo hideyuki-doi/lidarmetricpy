@@ -24,6 +24,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, os.environ.get("LIDARMETRICPY_PATH", str(HERE.parent)))
 from lidarmetricpy import Options, compute_tile, compute_tiles  # noqa: E402
 from compare import METRICS  # noqa: E402
+from refcheck import check  # noqa: E402
 
 OUT = HERE / "backend_compare"
 OUT.mkdir(exist_ok=True)
@@ -74,22 +75,11 @@ class Peak:
 
 
 def agreement(df, mesh):
-    ref = pd.read_csv(HERE / "ref_full" / f"{mesh}_cells.csv")
-    m = ref.merge(df, on=["x", "y"], suffixes=("_r", "_p"))
-    exact = 0
-    worst = {}
-    for k in METRICS:
-        a, b = m[k + "_r"], m[k + "_p"]
-        if k == "tree_n":
-            b = b.where(b > 0)                 # the R reference leaves NA where a cell has no tree
-        both = a.notna() & b.notna()
-        d = (a[both] - b[both]).abs()
-        tol = 1e-6 * np.maximum(1, a[both].abs())
-        ok = bool(((d <= tol) | (a[both] == b[both])).all()) and not bool((a.isna() != b.isna()).any())
-        exact += ok
-        if not ok:
-            worst[k] = float(((d <= tol) | (a[both] == b[both])).mean())
-    return exact, worst
+    """(number of metrics equal in every cell, {metric: share of compared cells that are equal}) — strict."""
+    res = check(pd.read_csv(HERE / "ref_full" / f"{mesh}_cells.csv"), df, METRICS)
+    worst = {r.metric: round(1 - (r.value_mismatch + r.class_mismatch) / max(1, r.n_finite + r.class_mismatch), 6)
+             for r in res.itertuples() if not r.equal}
+    return int(res.equal.sum()), worst
 
 
 def single(backend, mesh, other=False):
