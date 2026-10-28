@@ -1,4 +1,4 @@
-"""Compare pcmetrics with leafR / forestr / ForestGapR (ref/<mesh>_other.csv) and PyForestScan (ref/<mesh>_pfs.csv).
+"""Compare lidarmetricpy with leafR / forestr / ForestGapR (ref/<mesh>_other.csv) and PyForestScan (ref/<mesh>_pfs.csv).
 
     python compare_other.py [backend ...]   → compare_other_<backend>.csv
 """
@@ -11,7 +11,7 @@ import pandas as pd
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent))
-from pcmetrics import Options, compute_tile  # noqa: E402
+from lidarmetricpy import Options, compute_tile  # noqa: E402
 
 OTHER = ["leafr_lai", "leafr_lahv", "leafr_lahv_laiw", "leafr_lahv_hw", "leafr_lahv_laiw_hw", "leafr_fhd",
          "leafr_fhd_even", "leafr_gs", "leafr_gs_even", "leafr_gc", "enl", "gap_frac", "gap_n", "gap_area_mean"]

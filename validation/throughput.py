@@ -9,7 +9,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent))
-from pcmetrics import Options, compute_tiles  # noqa: E402
+from lidarmetricpy import Options, compute_tiles  # noqa: E402
 
 if __name__ == "__main__":
     backend, workers = sys.argv[1], int(sys.argv[2])

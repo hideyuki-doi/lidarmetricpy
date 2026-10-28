@@ -1,4 +1,4 @@
-detail of the reference implementation,affects,how pcmetrics matches it
+detail of the reference implementation,affects,how lidarmetricpy matches it
 lidR round_any uses C round() (halves away from zero),"voxel indices, canopy raster extent",C round emulated
 terra closes the right / bottom outer edge of a raster: points on it belong to the last column / row,cell membership,closed_edges=True (default)
 highest(1) snaps each cell's bbox with st_adjust_bbox (C round): a negative-integer max x (positive-integer min y) lies on the layout edge and goes to the last column (row),rumple,per-cell layout edge rule

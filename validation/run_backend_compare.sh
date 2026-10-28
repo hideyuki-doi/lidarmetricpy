@@ -1,10 +1,10 @@
 #!/bin/bash
 # GPU / CPU comparison on a frozen copy of the package. Low priority: the machine is shared.
 cd "$(dirname "$0")"
-PYTHON=${PYTHON:-python}         # Python with pcmetrics installed
+PYTHON=${PYTHON:-python}         # Python with lidarmetricpy installed
 SNAP=$PWD/backend_compare/snapshot
-rm -rf $SNAP && mkdir -p $SNAP && cp -r ../pcmetrics $SNAP/ && rm -rf $SNAP/pcmetrics/__pycache__
-export PCMETRICS_PATH=$SNAP
+rm -rf $SNAP && mkdir -p $SNAP && cp -r ../lidarmetricpy $SNAP/ && rm -rf $SNAP/lidarmetricpy/__pycache__
+export LIDARMETRICPY_PATH=$SNAP
 mkdir -p backend_compare && rm -f backend_compare/single.csv backend_compare/throughput.csv
 PY="nice -n 10 $PYTHON -W ignore"
 for b in cupy torch-cuda torch-cuda32 numpy torch-cpu; do

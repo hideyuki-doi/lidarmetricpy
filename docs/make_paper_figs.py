@@ -1,4 +1,4 @@
-"""Figures and tables for the pcmetrics methods paper (all values read from measured files).
+"""Figures and tables for the lidarmetricpy methods paper (all values read from measured files).
 
 Inputs
   docs/data/cells_vs_reference.parquet, canopylazr_vs_reference.parquet   (make_paper_data.py)
@@ -175,7 +175,7 @@ def fig_scatter(cells, clz):
                 va="top", fontsize=5.8, color=INK2)
         ax.tick_params(labelsize=6)
     fig.supxlabel("reference package (R / Python)", fontsize=8)
-    fig.supylabel("pcmetrics (CuPy, float64)", fontsize=8)
+    fig.supylabel("lidarmetricpy (CuPy, float64)", fontsize=8)
     plt.tight_layout()
     save(fig, "fig2_agreement_scatter")
 
@@ -219,7 +219,7 @@ def fig_heatmap(cells, clz):
         ax.text(len(BACKENDS) - 0.35, (y0 + y1 - 1) / 2, lab, fontsize=6.2, va="center", color=PCOL[lab],
                 fontweight="bold")
     cb = fig.colorbar(im, ax=ax, orientation="horizontal", fraction=0.025, pad=0.02, aspect=30)
-    cb.set_label("max |pcmetrics − reference| / max(1, |reference|) over all cells", fontsize=6.5)
+    cb.set_label("max |lidarmetricpy − reference| / max(1, |reference|) over all cells", fontsize=6.5)
     cb.ax.tick_params(labelsize=6)
     cb.ax.axvline(1e-6, color="#c0392b", lw=1)
     ax.set_title("Agreement with the reference packages\n(× : at least one cell outside 1e-6 or NA pattern differs; "
@@ -277,7 +277,7 @@ def fig_single(single):
     axs[1].set_yticks(range(len(order)), [BLABEL[b].replace("\n", " ") for b in order], fontsize=6.5)
     axs[1].invert_yaxis()
     axs[1].set_xlabel("seconds")
-    axs[1].set_title("(b) pcmetrics stages (same tile)", loc="left")
+    axs[1].set_title("(b) lidarmetricpy stages (same tile)", loc="left")
     axs[1].legend(fontsize=6, ncol=1, loc="center left", bbox_to_anchor=(1.01, 0.5))
     axs[1].grid(axis="x", color=GRID, lw=0.6)
     plt.tight_layout()
@@ -408,7 +408,7 @@ def write_table(df, name, title):
 def tables(res, cells, single, thr, mb):
     t1 = pd.DataFrame([{"metric": m, "package": VERS[package(m)], "definition": DEFS.get(m, ""),
                         "points used": POINTS[package(m)]} for m in LIDR + OTHER + CLZ])
-    write_table(t1, "table1_metrics", "Table 1. Metrics reproduced by pcmetrics")
+    write_table(t1, "table1_metrics", "Table 1. Metrics reproduced by lidarmetricpy")
     import json
     clips = [c for c in json.loads((VAL / "data/clips.json").read_text()) if c["n"] > 0]
     full = json.loads((VAL / "data/full.json").read_text())
@@ -469,7 +469,7 @@ def tables(res, cells, single, thr, mb):
         ("leafR: one NA layer makes LAHV / FHD NA; < 2 layers -> error", "leafR metrics", "same NA rules"),
         ("PyForestScan: zmax on an integer edge falls in the last closed bin", "pfs metrics", "same binning"),
         ("canopyLazR: file-wide Tukey filter, round() half-to-even bins, factor NA drops", "canopyLazR rasters", "ported"),
-    ], columns=["detail of the reference implementation", "affects", "how pcmetrics matches it"])
+    ], columns=["detail of the reference implementation", "affects", "how lidarmetricpy matches it"])
     write_table(t5, "table5_reproduction_details", "Table 5. Details needed for exact agreement")
 
 

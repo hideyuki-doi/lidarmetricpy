@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from pcmetrics import Options, compute_tile, compute_tiles, plan_blocks
+from lidarmetricpy import Options, compute_tile, compute_tiles, plan_blocks
 from test_reference import BACKENDS, NC, NR, X0, Y1, _available
 
 LAZ = str(Path(__file__).resolve().parent / "data" / "synthetic.laz")

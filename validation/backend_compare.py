@@ -20,9 +20,9 @@ import numpy as np
 import pandas as pd
 
 HERE = Path(__file__).resolve().parent
-# PCMETRICS_PATH: a frozen copy of the package, so that edits during a long benchmark cannot leak in
-sys.path.insert(0, os.environ.get("PCMETRICS_PATH", str(HERE.parent)))
-from pcmetrics import Options, compute_tile, compute_tiles  # noqa: E402
+# LIDARMETRICPY_PATH: a frozen copy of the package, so that edits during a long benchmark cannot leak in
+sys.path.insert(0, os.environ.get("LIDARMETRICPY_PATH", str(HERE.parent)))
+from lidarmetricpy import Options, compute_tile, compute_tiles  # noqa: E402
 from compare import METRICS  # noqa: E402
 
 OUT = HERE / "backend_compare"

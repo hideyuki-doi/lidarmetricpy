@@ -17,7 +17,7 @@ import pandas as pd
 HERE = Path(__file__).resolve().parent
 VAL = HERE.parent / "validation"
 sys.path.insert(0, str(HERE.parent))
-from pcmetrics import Options, compute_tile  # noqa: E402
+from lidarmetricpy import Options, compute_tile  # noqa: E402
 
 backend, mem, host = sys.argv[1], sys.argv[2], sys.argv[3]
 mg = None if mem == "none" else float(mem)

@@ -1,11 +1,11 @@
-# pcmetrics
+# lidarmetricpy
 
 Forest structure metrics from airborne lidar point clouds, **identical to lidR 4.3 + lidRmetrics 0.1.5**
 (and to leafR, PyForestScan, forestr, ForestGapR and canopyLazR for their metrics), on NVIDIA GPUs (CuPy or
 PyTorch), Apple Silicon GPUs (PyTorch MPS, float32) or any CPU (NumPy), with explicit memory budgets.
 
 ```python
-from pcmetrics import compute_tile, compute_tiles, Options
+from lidarmetricpy import compute_tile, compute_tiles, Options
 
 df = compute_tile("tile.laz", x0=-62000, y1=-57750, ncol=40, nrow=30, cell=25,
                   dtm="dtm.tif",            # or None if Z is already height above ground
@@ -21,9 +21,9 @@ processes that share one GPU; the budgets are totals, split equally between the 
 ## Install
 
 ```bash
-pip install "pcmetrics[cuda] @ git+https://github.com/hideyuki-doi/pcmetrics"     # NVIDIA, CuPy
-pip install "pcmetrics[torch] @ git+https://github.com/hideyuki-doi/pcmetrics"    # PyTorch (CUDA, MPS or CPU)
-pip install "pcmetrics @ git+https://github.com/hideyuki-doi/pcmetrics"           # NumPy only
+pip install "lidarmetricpy[cuda] @ git+https://github.com/hideyuki-doi/lidarmetricpy"     # NVIDIA, CuPy
+pip install "lidarmetricpy[torch] @ git+https://github.com/hideyuki-doi/lidarmetricpy"    # PyTorch (CUDA, MPS or CPU)
+pip install "lidarmetricpy @ git+https://github.com/hideyuki-doi/lidarmetricpy"           # NumPy only
 ```
 
 Python ≥ 3.10. Core dependencies: numpy, scipy, pandas, laspy with lazrs, numba, shapely, rasterio.
@@ -73,7 +73,7 @@ each equal to the package applied to the points of one cell:
 canopyLazR 2.0 works on elevations and on its own grid, so it is a separate CPU function:
 
 ```python
-from pcmetrics import canopylazr_file
+from lidarmetricpy import canopylazr_file
 r = canopylazr_file("raw_tile.laz", xy_res=10, z_res=1, ht_cut=5)   # DataFrame: x, y, clz_* rasters
 ```
 

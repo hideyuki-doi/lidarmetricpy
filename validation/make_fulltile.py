@@ -4,7 +4,7 @@ import json, sys
 from pathlib import Path
 import laspy, numpy as np, rasterio
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from pcmetrics.api import Grid, _spike_filter
+from lidarmetricpy.api import Grid, _spike_filter
 LAZ = Path(os.environ.get("PCM_LAZ_DIR", Path.home() / "forest_data/nakatsu/raw/laz"))          # Kanagawa 2024 ALS LAZ tiles
 DEM = Path(os.environ.get("PCM_DEM_DIR", Path.home() / "forest_data/kanagawa2024/dem"))          # matching 0.5 m DEM tiles
 OUT = Path(__file__).resolve().parent / "data"

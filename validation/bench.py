@@ -12,7 +12,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent))
-from pcmetrics import Options, compute_tile  # noqa: E402
+from lidarmetricpy import Options, compute_tile  # noqa: E402
 
 mesh, backend, mem, host, tag = sys.argv[1:6]
 mem = None if mem == "none" else float(mem)

@@ -3,7 +3,7 @@
 For each tile: heights above ground with the tile DEM (nearest 0.5 m cell), points between
 -1 and 60 m, the 1 m-column spike filter, then a 250 x 250 m clip (10 x 10 cells of 25 m)
 in the tile centre. Written as LAZ with Z = height above ground (scale 0.001), so lidR and
-pcmetrics read exactly the same points.
+lidarmetricpy read exactly the same points.
 
     python make_testdata.py  → validation/data/<mesh>_clip.laz + clips.json
 """
@@ -17,7 +17,7 @@ import numpy as np
 import rasterio
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from pcmetrics.api import Grid, _spike_filter  # noqa: E402
+from lidarmetricpy.api import Grid, _spike_filter  # noqa: E402
 
 LAZ = Path(os.environ.get("PCM_LAZ_DIR", Path.home() / "forest_data/nakatsu/raw/laz"))          # Kanagawa 2024 ALS LAZ tiles
 DEM = Path(os.environ.get("PCM_DEM_DIR", Path.home() / "forest_data/kanagawa2024/dem"))          # matching 0.5 m DEM tiles

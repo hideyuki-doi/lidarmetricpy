@@ -1,4 +1,4 @@
-"""Compare pcmetrics with the lidR/lidRmetrics reference on the clips.
+"""Compare lidarmetricpy with the lidR/lidRmetrics reference on the clips.
 
     python compare.py [backend ...]      (default: cupy numpy torch-cuda torch-cpu)
 Writes validation/compare_<backend>.csv: per metric, cells compared, max |diff|,
@@ -15,7 +15,7 @@ from scipy.stats import spearmanr
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent))
-from pcmetrics import Options, compute_tile  # noqa: E402
+from lidarmetricpy import Options, compute_tile  # noqa: E402
 
 METRICS = ["zq20", "zcv", "CRR", "zentropy", "zpcum7", "zpcum9", "pz_above_30", "L4", "Lskew", "Lkurt",
            "lad_max", "lad_mean", "lad_cv", "p_single", "p_last", "ratio_last_first", "OpenGapSpace",

@@ -2,7 +2,7 @@
 # all references in the foreground of this script (no pipe subshell, so `wait` waits for them)
 cd "$(dirname "$0")"
 RSCRIPT=${RSCRIPT:-Rscript}      # R with lidR 4.3.3, lidRmetrics 0.1.5 (+ leafR, forestr, ForestGapR, canopyLazR)
-PYTHON=${PYTHON:-python}         # Python with pcmetrics installed
+PYTHON=${PYTHON:-python}         # Python with lidarmetricpy installed
 mapfile -t JOBS < <($PYTHON -c "
 import json
 for c in json.load(open('data/clips.json')):

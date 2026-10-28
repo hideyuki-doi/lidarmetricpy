@@ -1,4 +1,4 @@
-"""pcmetrics against the reference packages on the synthetic tile (tests/data, references in tests/data/ref).
+"""lidarmetricpy against the reference packages on the synthetic tile (tests/data, references in tests/data/ref).
 
 Every float64 backend must reproduce every reference value (within 1e-6 relative, same NA pattern) and every
 tree top. Backends that are not installed are skipped.
@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from pcmetrics import Options, canopylazr, compute_tile, get_backend
+from lidarmetricpy import Options, canopylazr, compute_tile, get_backend
 
 DATA = Path(__file__).resolve().parent / "data"
 REF = DATA / "ref"
@@ -47,7 +47,7 @@ def assert_same(ref, got, cols, what):
     bad = []
     for k in cols:
         a, b = ref[k].astype(float).to_numpy(), got[k].astype(float).to_numpy()
-        if k == "tree_n":           # cells without trees: NA in the R summary; cells without points: no pcmetrics row
+        if k == "tree_n":           # cells without trees: NA in the R summary; cells without points: no lidarmetricpy row
             a, b = np.nan_to_num(a), np.nan_to_num(b)
         na = np.isnan(a) != np.isnan(b)
         both = ~np.isnan(a) & ~np.isnan(b)
@@ -71,7 +71,7 @@ def test_cells_match_reference(backend, reference):
     df, (chm, L, (rr, cc, area)) = compute_tile(str(DATA / "synthetic.laz"), X0, Y1, NC, NR, backend=backend,
                                                 options=OPT, return_trees=True)
     m = reference.merge(df, on=["x", "y"], how="left", suffixes=("_ref", ""))
-    # pcmetrics returns the cells that have points; lidR also lists empty cells (all NA)
+    # lidarmetricpy returns the cells that have points; lidR also lists empty cells (all NA)
     assert set(map(tuple, m.loc[m.n.isna(), ["x", "y"]].values)) == \
         set(map(tuple, reference.loc[reference.n_ref.isna() if "n_ref" in reference else reference.n.isna(), ["x", "y"]].values))
     m = m[m.n.notna()]

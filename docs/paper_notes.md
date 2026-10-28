@@ -1,4 +1,4 @@
-# pcmetrics 計算方法論文のための整理ノート
+# lidarmetricpy 計算方法論文のための整理ノート
 
 作成 2026-10-27。README（使い方）とは別に、論文の方法・結果・考察の材料をまとめる。
 数値はすべて validation/ の実測ファイルから転記した（推定値は「推定」と明記）。
@@ -29,7 +29,7 @@
 - GPU に収まらない場合は、主記憶で行ごとに振り分けて流す。
 - それでも主記憶に収まらない場合は、LAZ を複数回読む。
 
-コードは pcmetrics/（backend.py, api.py, area.py, trees.py, knnidw.py, extra.py, canopylazr.py）にある。
+コードは lidarmetricpy/（backend.py, api.py, area.py, trees.py, knnidw.py, extra.py, canopylazr.py）にある。
 
 ## 3. 指標の一覧
 
@@ -79,7 +79,7 @@
 | canopyLazR 9種類のラスター | 正規化前の4区画 × 解像度2通り（10 m, 5 m）、12,600列 | numpy（CPU のみの実装） | 72/72（指標 × 区画 × 解像度）が一致（最大差 3.1e-11） |
 
 照合の途中で、次の2点が分かった。どちらも計算の誤りではなく、比較の条件と端の扱いの問題だった。
-- **区画データに z = −1.000 ちょうどの点が残っていた。** 作るとき −1 m より上で切り、そのあとミリ単位に丸めたため。pcmetrics の既定（z > −1）ではこの点が落ちる。照合では範囲の絞り込みを外して、R と同じ全点を使った。これが効くのは、地面の層まで数える leafR の LAD 系だけ。
+- **区画データに z = −1.000 ちょうどの点が残っていた。** 作るとき −1 m より上で切り、そのあとミリ単位に丸めたため。lidarmetricpy の既定（z > −1）ではこの点が落ちる。照合では範囲の絞り込みを外して、R と同じ全点を使った。これが効くのは、地面の層まで数える leafR の LAD 系だけ。
 - **leafR は、地面より上の 1 m 層が1つしかない格子でエラーになる**（行列が1列のベクトルに縮むため）。パッケージに合わせて NA を返すようにした。
 
 ## 6. 結果: 速度とメモリ
@@ -173,7 +173,7 @@
 | 番号 | 内容 | 元のデータ |
 |---|---|---|
 | 図1 fig1_workflow | 処理の流れ（CPU と GPU の分担、出力の指標数） | – |
-| 図2 fig2_agreement_scatter | 16指標の散布図、参照パッケージ vs pcmetrics（CuPy） | cells_vs_reference.parquet, canopylazr_vs_reference.parquet |
+| 図2 fig2_agreement_scatter | 16指標の散布図、参照パッケージ vs lidarmetricpy（CuPy） | cells_vs_reference.parquet, canopylazr_vs_reference.parquet |
 | 図3 fig3_agreement_heatmap | 全指標 × 5バックエンドの最大相対差。× は 1e-6 を超えた格子があるか NA の位置が違う指標 | 同上 |
 | 図4 fig4_single_tile | (a) 1図郭の時間（lidR を含む）、(b) 処理段階ごとの内訳 | backend_compare/single.csv, ref_full/*.log |
 | 図5 fig5_throughput | ワーカー数と1図郭あたりの秒数（lidR は 8プロセスのみ） | backend_compare/throughput.csv, par/lidr_par.log |
@@ -222,11 +222,11 @@ lidR / lidRmetrics と一致させるには、次の点を一つずつ合わせ�
    - rlas と laspy で、座標の最後の1ビットが違う場合があった（標高で最大 2e-13 m）。
 
 **公開前のレビューで見つかった2点**（2026-10-28。合成データのテスト tests/ で見つかった。神奈川のデータは格子どおりに切り出してあり、外枠ちょうどの点がなかったため、それまでの検証では表に出なかった）
-- **格子の外枠:** lidR（terra）は、ラスターの右端と下端を閉じた区間として扱う。外枠ちょうどの点は最後の列・行に入る。pcmetrics は半開区間で、この点を落としていた。既定を lidR と同じにし、隣の図郭と端を共有する場合のために `Options(closed_edges=False)` を残した。
+- **格子の外枠:** lidR（terra）は、ラスターの右端と下端を閉じた区間として扱う。外枠ちょうどの点は最後の列・行に入る。lidarmetricpy は半開区間で、この点を落としていた。既定を lidR と同じにし、隣の図郭と端を共有する場合のために `Options(closed_edges=False)` を残した。
 - **rumple の 1 m 画素:**
   - `decimate_points(highest(1))` は、格子ごとの点の範囲を `st_adjust_bbox` で丸めて画素の枠を作る。右端は `round_any(xmax − 0.5) + 1`（C の round）。
   - 最大 x が負の整数のときは、右端がその点にちょうど重なり、その点は最後の列に入る（下端も同様で、最小 y が正の整数のとき）。
-  - pcmetrics は全体で共通の floor(x) の画素を使っていたので、この場合だけずれていた。格子ごとにこの規則を入れた（`rumple_pixels`）。神奈川の座標は負なので、実データでも起こりうる。
+  - lidarmetricpy は全体で共通の floor(x) の画素を使っていたので、この場合だけずれていた。格子ごとにこの規則を入れた（`rumple_pixels`）。神奈川の座標は負なので、実データでも起こりうる。
 - 他パッケージの参照値を作る自作スクリプト（ref_other.R, ref_pyforestscan.py）も、外枠の扱いを lidR に合わせた。leafR は、格子の点の広がりがちょうど 25 m だと画素を2つに分けてしまうので、`grain.size = 26` にして1格子1画素にした。leafR の LAD は点数の比だけで決まるので、面積には依存しない。
   - 直したスクリプトで神奈川の小区画の参照値を作り直すと、前の値と完全に同じだった。
 

@@ -1,8 +1,8 @@
-"""Per-cell pcmetrics vs reference values for the paper figures.
+"""Per-cell lidarmetricpy vs reference values for the paper figures.
 
     python make_paper_data.py  → docs/data/cells_vs_reference.parquet, docs/data/canopylazr_vs_reference.parquet
 
-Recomputes pcmetrics (cupy, float64; torch-cuda32, float32) on the four clips and the two full tiles and joins
+Recomputes lidarmetricpy (cupy, float64; torch-cuda32, float32) on the four clips and the two full tiles and joins
 the stored references (validation/ref*, written by ref_lidr.R, ref_other.R, ref_pyforestscan.py, ref_canopylazr.R).
 """
 import json
@@ -16,7 +16,7 @@ import pandas as pd
 HERE = Path(__file__).resolve().parent
 VAL = HERE.parent / "validation"
 sys.path.insert(0, str(HERE.parent))
-from pcmetrics import Options, canopylazr, compute_tile  # noqa: E402
+from lidarmetricpy import Options, canopylazr, compute_tile  # noqa: E402
 
 OUT = HERE / "data"
 OUT.mkdir(exist_ok=True)

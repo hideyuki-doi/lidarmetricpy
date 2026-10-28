@@ -1,6 +1,6 @@
 """Grid metrics for one tile, with memory budgets.
 
-    from pcmetrics import compute_tile
+    from lidarmetricpy import compute_tile
     df = compute_tile("tile.laz", x0=-62000, y1=-48750, ncol=40, nrow=30, cell=25,
                       dtm="dtm.tif", backend="auto", gpu_memory_gb=8, cpu_memory_gb=16)
 

@@ -1,16 +1,17 @@
 [build-system]
-requires = ["setuptools>=64"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "pcmetrics"
+name = "lidarmetricpy"
 version = "0.2.0"
 description = "Forest structure metrics from airborne lidar, identical to lidR/lidRmetrics, on GPU (CUDA, Apple MPS) or CPU"
 authors = [{ name = "Hideyuki Doi" }]
 keywords = ["lidar", "forest", "point cloud", "lidR", "GPU"]
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "GPL-3.0-or-later" }
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
 dependencies = ["numpy>=1.24", "scipy>=1.10", "pandas>=2.0", "laspy[lazrs]>=2.5", "numba>=0.58", "shapely>=2.0", "rasterio>=1.3"]
 
 [project.optional-dependencies]
@@ -19,10 +20,10 @@ torch = ["torch>=2.2"]
 test = ["pytest"]
 
 [project.urls]
-Homepage = "https://github.com/hideyuki-doi/pcmetrics"
+Homepage = "https://github.com/hideyuki-doi/lidarmetricpy"
 
 [tool.setuptools]
-packages = ["pcmetrics"]
+packages = ["lidarmetricpy"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]

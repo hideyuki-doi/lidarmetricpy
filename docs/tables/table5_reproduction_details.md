@@ -1,6 +1,6 @@
 # Table 5. Details needed for exact agreement
 
-| detail of the reference implementation | affects | how pcmetrics matches it |
+| detail of the reference implementation | affects | how lidarmetricpy matches it |
 |---|---|---|
 | lidR round_any uses C round() (halves away from zero) | voxel indices, canopy raster extent | C round emulated |
 | terra closes the right / bottom outer edge of a raster: points on it belong to the last column / row | cell membership | closed_edges=True (default) |

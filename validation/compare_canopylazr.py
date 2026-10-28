@@ -1,4 +1,4 @@
-"""Compare pcmetrics.canopylazr with canopyLazR (ref/<mesh>_xy<res>_clz.csv) on the raw clips.
+"""Compare lidarmetricpy.canopylazr with canopyLazR (ref/<mesh>_xy<res>_clz.csv) on the raw clips.
     python compare_canopylazr.py → compare_canopylazr.csv"""
 import json
 import sys
@@ -10,7 +10,7 @@ import pandas as pd
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent))
-from pcmetrics.canopylazr import canopylazr  # noqa: E402
+from lidarmetricpy.canopylazr import canopylazr  # noqa: E402
 
 rows = []
 for c in json.loads((HERE / "data/rawclips.json").read_text()):

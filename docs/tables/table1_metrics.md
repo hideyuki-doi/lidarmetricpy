@@ -1,4 +1,4 @@
-# Table 1. Metrics reproduced by pcmetrics
+# Table 1. Metrics reproduced by lidarmetricpy
 
 | metric | package | definition | points used |
 |---|---|---|---|
