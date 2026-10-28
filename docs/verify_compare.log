@@ -39,10 +39,10 @@ ratio_last_first        0      0               0               0       400  5.55
 09LC9511  935  935   935          935      935
 09LC9423 1221 1221  1221         1221     1221
     mesh  points  seconds
-09LC9542 3255314 1.059445
-09MC0523 4127685 0.379276
-09LC9511 7418157 0.500838
-09LC9423 8300828 0.521636
+09LC9542 3255314 1.062146
+09MC0523 4127685 0.372128
+09LC9511 7418157 0.481131
+09LC9423 8300828 0.503247
 == numpy: 4 of 4 clips verified
           metric  missing  extra  class_mismatch  value_mismatch  n_finite  max_abs_diff  max_rel_diff  equal
             zq20        0      0               0               0       400  3.552714e-15  6.935101e-16   True
@@ -84,10 +84,10 @@ ratio_last_first        0      0               0               0       400  5.55
 09LC9511  935  935   935          935      935
 09LC9423 1221 1221  1221         1221     1221
     mesh  points  seconds
-09LC9542 3255314 2.147138
-09MC0523 4127685 2.714459
-09LC9511 7418157 5.468355
-09LC9423 8300828 5.942019
+09LC9542 3255314 2.145739
+09MC0523 4127685 2.647075
+09LC9511 7418157 5.347481
+09LC9423 8300828 5.905957
 == torch-cuda: 4 of 4 clips verified
           metric  missing  extra  class_mismatch  value_mismatch  n_finite  max_abs_diff  max_rel_diff  equal
             zq20        0      0               0               0       400  3.552714e-15  6.935101e-16   True
@@ -129,10 +129,10 @@ ratio_last_first        0      0               0               0       400  5.55
 09LC9511  935  935   935          935      935
 09LC9423 1221 1221  1221         1221     1221
     mesh  points  seconds
-09LC9542 3255314 1.273398
-09MC0523 4127685 0.361446
-09LC9511 7418157 0.490354
-09LC9423 8300828 0.531652
+09LC9542 3255314 1.282455
+09MC0523 4127685 0.347723
+09LC9511 7418157 0.474824
+09LC9423 8300828 0.523354
 == torch-cpu: 4 of 4 clips verified
           metric  missing  extra  class_mismatch  value_mismatch  n_finite  max_abs_diff  max_rel_diff  equal
             zq20        0      0               0               0       400  3.552714e-15  6.935101e-16   True
@@ -174,7 +174,7 @@ ratio_last_first        0      0               0               0       400  5.55
 09LC9511  935  935   935          935      935
 09LC9423 1221 1221  1221         1221     1221
     mesh  points  seconds
-09LC9542 3255314 1.582013
-09MC0523 4127685 1.970066
-09LC9511 7418157 5.036224
-09LC9423 8300828 5.621043
+09LC9542 3255314 1.520158
+09MC0523 4127685 1.824914
+09LC9511 7418157 4.499680
+09LC9423 8300828 4.896321

@@ -160,6 +160,34 @@ def test_dtm_pixel_on_boundaries_independent_of_grid_origin(tmp_path, backend, r
             same(g.reset_index(drop=True), want, ["n_points", "n", "zq20", "zcv", "CRR", "L4"])
 
 
+@pytest.mark.parametrize("backend", BACKENDS)
+def test_dtm_right_and_bottom_edges_take_the_last_pixel(tmp_path, backend):
+    """A point exactly on the DTM's right / bottom edge takes the last column / row (lidR raster_cell_from_xy);
+    0.3.1 dropped it. Ground values from lidR 4.3.3 normalize_height on the same 0.5 x 1 m DTM (R 4.5.3)."""
+    import rasterio
+    from rasterio.transform import from_origin
+    with rasterio.open(tmp_path / "d.tif", "w", driver="GTiff", width=3, height=2, count=1, dtype="float64",
+                       transform=from_origin(0, 2, 0.5, 1)) as ds:
+        ds.write(np.array([[100., 101, 102], [103, 104, 105]]), 1)
+    x = np.array([1.5, 1.5, 0.25, 1.25, 1.5, 0.25, 0.75, 0, 1.0, 0.5])      # right, bottom, corner, top, left, inside
+    y = np.array([0.5, 1.5, 0, 0, 0, 0.5, 2, 1, 1, 0])
+    ground_r = np.array([105, 102, 103, 105, 105, 103, 101, 103, 105, 104.])
+    xo, yo = np.array([1.501, 0.75, -0.001, 0.75]), np.array([1, -0.001, 1, 2.001])     # outside the DTM: dropped
+    got = compute_tile(src(np.r_[x, xo], np.r_[y, yo], np.r_[ground_r + 10, np.full(4, 200.0)]), -1, 3, 1, 1,
+                       cell=4, dtm=str(tmp_path / "d.tif"), backend=backend,
+                       options=Options.lidr(trees=False, other_packages=False))
+    assert got.n_points.sum() == len(x)
+    assert got.zq20.iloc[0] == 10 and got.zcv.iloc[0] == 0             # every point took the R pixel
+    # the review's case: 2 x 2 DTM of 1 m, points on the right and bottom edges
+    with rasterio.open(tmp_path / "e.tif", "w", driver="GTiff", width=2, height=2, count=1, dtype="float64",
+                       transform=from_origin(0, 2, 1, 1)) as ds:
+        ds.write(np.full((2, 2), 100.), 1)
+    got = compute_tile(src([2, 2, .5, 1.5], [.5, 1.5, 0, 0], [110, 111, 112, 113.]), 0, 3, 1, 1, cell=4,
+                       dtm=str(tmp_path / "e.tif"), backend=backend,
+                       options=Options.lidr(trees=False, other_packages=False))
+    assert got.n_points.sum() == 4 and np.isclose(got.zq20.iloc[0], 10.6)
+
+
 def test_integer_dtm_without_nodata_outside_coverage(tmp_path):
     a = np.full((5, 5), 100, np.int16)
     _write_dtm(tmp_path / "d.tif", a, 0.0, 5.0, 1.0, "int16")
@@ -255,6 +283,51 @@ def test_device_path_reads_laz_within_ram_budget(monkeypatch):
     df = compute_tile(laz, -62000.0, -57750.0, 4, 4, backend="cupy", gpu_memory_gb=8, cpu_memory_gb=0.008)
     assert df.attrs["stats"]["path"] == "device"
     assert seen and max(seen) <= int(0.25 * 0.008 * 1024 ** 3 / 64) + 1
+
+
+@pytest.mark.parametrize("kind", ["laz", "dict"])
+def test_device_path_transfers_within_gpu_chunk(kind):
+    """On the device path every array sent to the device while reading is at most the GPU chunk
+    (options.chunk_points), even when the RAM budget allows larger reading chunks; 0.3.1 sent whole reading
+    chunks. Run with a NumPy-backed device so that it needs no GPU; results do not depend on the chunk."""
+    import laspy
+    from pathlib import Path
+    from lidarmetricpy.api import Grid, _device_tile
+    from lidarmetricpy.backend import NumpyLike
+    laz = Path(__file__).resolve().parent / "data" / "synthetic.laz"
+    source = str(laz)
+    if kind == "dict":
+        las = laspy.read(laz)
+        source = dict(x=np.asarray(las.x), y=np.asarray(las.y), z=np.asarray(las.z),
+                      return_number=np.asarray(las.return_number), number_of_returns=np.asarray(las.number_of_returns))
+    grid = Grid(-62000.0, -57750.0, 4, 4, 25.0)
+
+    def run(chunk):
+        B = NumpyLike(np, "device-emulation")
+        B.device = "cuda"
+        sizes, reading = [], [True]
+        asarray, free = B.asarray, B.free
+
+        def spy(a, *args, **kw):
+            if reading[0]:
+                sizes.append(int(np.size(a)))
+            return asarray(a, *args, **kw)
+
+        def stop():
+            reading[0] = False
+            return free()
+
+        B.asarray, B.free = spy, stop
+        T = {"read": 0.0, "prepare": 0.0, "area": 0.0, "canopy": 0.0, "trees": 0.0}
+        frames, _, n = _device_tile(source, grid, Options(trees=False, other_packages=False, chunk_points=chunk), B,
+                                    None, T, 10 ** 7, read_points=4 * chunk)
+        return sizes, pd.concat(frames).sort_values(["x", "y"]).reset_index(drop=True), n
+
+    sizes, small, n = run(1000)
+    assert n > 5000 and sizes and max(sizes) <= 1000
+    _, big, n2 = run(10 ** 7)
+    assert n2 == n
+    same(small, big, [c for c in big.columns if c not in ("x", "y")])
 
 
 # ---------------------------------------------------------------- strict comparison and budgets

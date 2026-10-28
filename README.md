@@ -47,6 +47,8 @@ Points are processed in blocks of whole cells, so any budget gives the same valu
 is prepared on the device when it fits, otherwise points are prepared in RAM and sent block by block.
 
 What a budget bounds: the point arrays (raw points in RAM, prepared points, LAZ read chunks and the blocks).
+On the device path, LAZ is decoded in chunks that fit both budgets, so each transfer to the GPU fits the GPU
+budget.
 It does not include fixed costs: Python and the libraries, the CUDA context (~0.7 GiB), the canopy raster of
 the tile (8 bytes per 0.5 m pixel, ~24 MB for 1 km × 0.75 km) and its fill, qhull and numba compilation.
 Measured GPU peaks stay under the budget from 2 to 16 GiB on a 90 M point tile (docs/data/memory_budget.csv).
@@ -63,8 +65,10 @@ with lidR; the defaults may remove real trees taller than 60 m or isolated crown
 
 With `dtm=`, heights are z minus the value of the DTM pixel that contains the point: column
 floor((x - x_dtm) / res) and row floor((y_dtm - y) / res) on the DTM's own grid, as lidR does (north-up
-rasters), whatever the origin of the metric grid. Points where the DTM has no data (nodata value, mask, outside
-the raster) are dropped.
+rasters), whatever the origin of the metric grid; a point exactly on the right or bottom edge of the DTM takes
+its last column or row, as in lidR. Points where the DTM has no data (nodata value, mask) are dropped, and so
+are points outside the raster: there lidR's `normalize_height` takes the nearest pixel with a warning, so make
+the DTM cover the tile.
 
 ## Grid
 

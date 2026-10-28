@@ -64,7 +64,7 @@ def compare_tables(ref, got, metrics, keys=("x", "y"), rtol=1e-6, ref_cols=None,
     a = ref[keys + [c for c in rsel if c in ref.columns]].rename(columns=rsel).assign(_inref=True)
     b = got[keys + [c for c in gsel if c in got.columns]].rename(columns=gsel).assign(_ingot=True)
     j = a.merge(b, on=keys, how="outer", validate="one_to_one").merge(req, on=keys, how="outer")
-    inref, ingot, isreq = (j[c].fillna(False).astype(bool).to_numpy() for c in ("_inref", "_ingot", "_req"))
+    inref, ingot, isreq = (j[c].notna().to_numpy() for c in ("_inref", "_ingot", "_req"))     # True or NaN
     missing = int((isreq & ~(ingot & inref)).sum())         # a required cell absent from either table
     extra = int((ingot & ~(inref & isreq)).sum())
     both = inref & ingot & isreq

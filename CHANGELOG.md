@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.3.2 (2026-10-29)
+
+Fixes from the final review (of 0.3.1, commit 7d1f2d9). Both were reproduced and have regression tests.
+
+- **DTM edges**: a point exactly on the right (x = xmax) or bottom (y = ymin) edge of the DTM takes the last
+  column / row, as lidR's raster_cell_from_xy does; 0.3.1 read the pixel outside the raster and dropped the
+  point. Checked against lidR 4.3.3 `normalize_height` on a 0.5 × 1 m DTM (edges, corner, inside). Points
+  outside the DTM are still dropped (lidR takes the nearest pixel with a warning); see README.
+- **GPU path, first transfer**: LAZ chunks decoded on the host are at most the GPU slice (`chunk_points` from
+  `gpu_memory_gb`) as well as the RAM chunk, and in-memory input is sent in slices too; 0.3.1 sent each RAM-sized
+  reading chunk to the GPU at once.
+- `compare_tables` no longer triggers the pandas FutureWarning on `fillna`.
+
 ## 0.3.1 (2026-10-28)
 
 Fixes from a second review (of 0.3.0, commit fe14561). Each item was reproduced and has a regression test.
