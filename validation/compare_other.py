@@ -1,6 +1,6 @@
 """Compare lidarmetricpy with leafR / forestr / ForestGapR (ref/<mesh>_other.csv) and PyForestScan (ref/<mesh>_pfs.csv).
 
-    python compare_other.py [backend ...]   → compare_other_<backend>.csv
+    python compare_other.py [--full | --set shizuoka] [backend ...]   → compare_other_<backend>[_full|_shizuoka].csv
 """
 import json
 import sys
@@ -19,8 +19,12 @@ OTHER = ["leafr_lai", "leafr_lahv", "leafr_lahv_laiw", "leafr_lahv_hw", "leafr_l
 PFS = ["pfs_pai", "pfs_cover", "pfs_fhd"]
 
 
-def run(backend, full=False):
-    src, refdir = ("data/full.json", "ref_full") if full else ("data/clips.json", "ref")
+SETS = {"clips": ("data/clips.json", "ref", ""), "full": ("data/full.json", "ref_full", "_full"),
+        "shizuoka": ("data/shizuoka.json", "ref_shizuoka", "_shizuoka")}
+
+
+def run(backend, ds="clips"):
+    src, refdir, suf = SETS[ds]
     clips = [c for c in json.loads((HERE / src).read_text()) if c["n"] > 0]
     rows = []
     require([HERE / refdir / f"{c['mesh']}_{k}.csv" for c in clips for k in ("other", "pfs")])
@@ -37,15 +41,21 @@ def run(backend, full=False):
         missing=("missing", "sum"), extra=("extra", "sum"), class_mismatch=("class_mismatch", "sum"),
         value_mismatch=("value_mismatch", "sum"), n_finite=("n_finite", "sum"), max_abs_diff=("max_abs_diff", "max"),
         max_rel_diff=("max_rel_diff", "max"), equal=("equal", "all")).reset_index()
-    res.to_csv(HERE / f"compare_other_{backend}{'_full' if full else ''}.csv", index=False)
-    print(f"== {backend}{' (full tiles)' if full else ''}: {len(rows)} of {len(clips)} datasets verified")
+    res.to_csv(HERE / f"compare_other_{backend}{suf}.csv", index=False)
+    print(f"== {backend} ({ds}): {len(rows)} of {len(clips)} datasets verified")
     print(res.to_string(index=False))
     return bool(res.equal.all())
 
 
 if __name__ == "__main__":
-    args = [a for a in sys.argv[1:] if a != "--full"]
+    a = sys.argv[1:]
+    ds = "full" if "--full" in a else "clips"
+    a = [x for x in a if x != "--full"]
+    if "--set" in a:
+        i = a.index("--set")
+        ds = a[i + 1]
+        a = a[:i] + a[i + 2:]
     ok = True
-    for b in args or ["cupy"]:
-        ok &= run(b, full="--full" in sys.argv)
+    for b in a or ["cupy"]:
+        ok &= run(b, ds)
     sys.exit(0 if ok else 1)

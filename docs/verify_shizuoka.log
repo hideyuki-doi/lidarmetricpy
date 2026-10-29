@@ -1,0 +1,225 @@
+== cupy (shizuoka): 4 of 4 datasets verified
+          metric  missing  extra  class_mismatch  value_mismatch  n_finite  max_abs_diff  max_rel_diff  equal
+            zq20        0      0               0               0       768  1.065814e-14  6.490397e-16   True
+             zcv        0      0               0               0       768  7.815970e-14  4.766540e-15   True
+             CRR        0      0               0               0       768  2.342571e-14  2.342571e-14   True
+        zentropy        0      0               0               0       768  8.881784e-16  8.881784e-16   True
+          zpcum7        0      0               0               0       768  7.105427e-14  4.437066e-15   True
+          zpcum9        0      0               0               0       768  7.105427e-14  2.809000e-15   True
+     pz_above_30        0      0               0               0       768  4.973799e-14  4.367364e-15   True
+              L4        0      0               0               0       768  2.754019e-12  2.754019e-12   True
+           Lskew        0      0               0               0       768  5.396672e-11  5.396672e-11   True
+           Lkurt        0      0               0               0       768  3.116687e-11  3.116687e-11   True
+         lad_max        0      0               0               0       706  4.618528e-14  4.636671e-15   True
+        lad_mean        0      0               0               0       706  4.618528e-14  2.911588e-15   True
+          lad_cv        0      0               0               0       690  5.773160e-15  4.876592e-15   True
+        p_single        0      0               0               0       768  5.684342e-14  4.987608e-15   True
+          p_last        0      0               0               0       768  5.684342e-14  4.149956e-15   True
+ratio_last_first        0      0               0               0       768  4.662937e-15  4.453374e-15   True
+    OpenGapSpace        0      0               0               0       758  5.684342e-14  3.966002e-15   True
+  ClosedGapSpace        0      0               0               0       768  5.684342e-14  4.531967e-15   True
+        Euphotic        0      0               0               0       768  5.684342e-14  3.354887e-15   True
+     Oligophotic        0      0               0               0       683  5.329071e-14  4.227063e-15   True
+            vzsd        0      0               0               0       696  6.106227e-16  6.106227e-16   True
+            vzcv        0      0               0               0       696  5.400125e-13  4.536137e-15   True
+ kde_peaks_count        0      0               0               0       768  0.000000e+00  0.000000e+00   True
+          rumple        0      0               0               0       768  3.019807e-14  4.625446e-15   True
+          tree_n        0      0               0               0       768  0.000000e+00  0.000000e+00   True
+     tree_h_mean        0      0               0               0       768  5.684342e-14  3.284791e-15   True
+       tree_h_sd        0      0               0               0       768  4.796163e-14  5.310903e-15   True
+       tree_h_cv        0      0               0               0       768  6.938894e-16  6.938894e-16   True
+      tree_h_max        0      0               0               0       768  0.000000e+00  0.000000e+00   True
+     tree_h_gini        0      0               0               0       768  5.273559e-16  5.273559e-16   True
+  tree_h_shannon        0      0               0               0       768  5.329071e-15  4.304161e-15   True
+   crown_m2_mean        0      0               0               0       768  5.684342e-14  2.951963e-15   True
+     crown_m2_sd        0      0               0               0       768  5.506706e-14  5.010249e-15   True
+    mesh  ref   pc  both  crown_equal  h_equal
+08MD4295 3080 3080  3080         3080     3080
+08OC0957 1966 1966  1966         1966     1966
+08NC0725 1727 1727  1727         1727     1727
+08MC7931 2053 2053  2053         2053     2053
+    mesh   points  seconds
+08MD4295 11927141 2.008009
+08OC0957  9264671 0.756487
+08NC0725 35137492 1.983426
+08MC7931 28165131 1.589845
+== numpy (shizuoka): 4 of 4 datasets verified
+          metric  missing  extra  class_mismatch  value_mismatch  n_finite  max_abs_diff  max_rel_diff  equal
+            zq20        0      0               0               0       768  1.065814e-14  6.490397e-16   True
+             zcv        0      0               0               0       768  7.105427e-14  5.277241e-15   True
+             CRR        0      0               0               0       768  1.409983e-14  1.409983e-14   True
+        zentropy        0      0               0               0       768  8.881784e-16  8.881784e-16   True
+          zpcum7        0      0               0               0       768  7.105427e-14  4.437066e-15   True
+          zpcum9        0      0               0               0       768  7.105427e-14  2.809000e-15   True
+     pz_above_30        0      0               0               0       768  4.973799e-14  4.367364e-15   True
+              L4        0      0               0               0       768  2.765010e-12  2.765010e-12   True
+           Lskew        0      0               0               0       768  5.396561e-11  5.396561e-11   True
+           Lkurt        0      0               0               0       768  3.116077e-11  3.116077e-11   True
+         lad_max        0      0               0               0       706  4.618528e-14  4.636671e-15   True
+        lad_mean        0      0               0               0       706  4.618528e-14  2.911588e-15   True
+          lad_cv        0      0               0               0       690  5.773160e-15  4.876592e-15   True
+        p_single        0      0               0               0       768  5.684342e-14  4.987608e-15   True
+          p_last        0      0               0               0       768  5.684342e-14  4.149956e-15   True
+ratio_last_first        0      0               0               0       768  4.662937e-15  4.453374e-15   True
+    OpenGapSpace        0      0               0               0       758  5.684342e-14  3.966002e-15   True
+  ClosedGapSpace        0      0               0               0       768  5.684342e-14  4.531967e-15   True
+        Euphotic        0      0               0               0       768  5.684342e-14  3.354887e-15   True
+     Oligophotic        0      0               0               0       683  5.329071e-14  4.227063e-15   True
+            vzsd        0      0               0               0       696  6.106227e-16  6.106227e-16   True
+            vzcv        0      0               0               0       696  5.400125e-13  4.536137e-15   True
+ kde_peaks_count        0      0               0               0       768  0.000000e+00  0.000000e+00   True
+          rumple        0      0               0               0       768  3.019807e-14  4.625446e-15   True
+          tree_n        0      0               0               0       768  0.000000e+00  0.000000e+00   True
+     tree_h_mean        0      0               0               0       768  5.684342e-14  3.284791e-15   True
+       tree_h_sd        0      0               0               0       768  4.796163e-14  5.310903e-15   True
+       tree_h_cv        0      0               0               0       768  6.938894e-16  6.938894e-16   True
+      tree_h_max        0      0               0               0       768  0.000000e+00  0.000000e+00   True
+     tree_h_gini        0      0               0               0       768  5.273559e-16  5.273559e-16   True
+  tree_h_shannon        0      0               0               0       768  5.329071e-15  4.304161e-15   True
+   crown_m2_mean        0      0               0               0       768  5.684342e-14  2.951963e-15   True
+     crown_m2_sd        0      0               0               0       768  5.506706e-14  5.010249e-15   True
+    mesh  ref   pc  both  crown_equal  h_equal
+08MD4295 3080 3080  3080         3080     3080
+08OC0957 1966 1966  1966         1966     1966
+08NC0725 1727 1727  1727         1727     1727
+08MC7931 2053 2053  2053         2053     2053
+    mesh   points   seconds
+08MD4295 11927141  9.236969
+08OC0957  9264671  7.064994
+08NC0725 35137492 37.715395
+08MC7931 28165131 22.299378
+== torch-cuda (shizuoka): 4 of 4 datasets verified
+          metric  missing  extra  class_mismatch  value_mismatch  n_finite  max_abs_diff  max_rel_diff  equal
+            zq20        0      0               0               0       768  1.065814e-14  6.490397e-16   True
+             zcv        0      0               0               0       768  7.815970e-14  4.936773e-15   True
+             CRR        0      0               0               0       768  2.520206e-14  2.520206e-14   True
+        zentropy        0      0               0               0       768  8.881784e-16  8.881784e-16   True
+          zpcum7        0      0               0               0       768  7.105427e-14  4.437066e-15   True
+          zpcum9        0      0               0               0       768  7.105427e-14  2.809000e-15   True
+     pz_above_30        0      0               0               0       768  4.973799e-14  4.367364e-15   True
+              L4        0      0               0               0       768  2.754186e-12  2.754186e-12   True
+           Lskew        0      0               0               0       768  5.396605e-11  5.396605e-11   True
+           Lkurt        0      0               0               0       768  3.116415e-11  3.116415e-11   True
+         lad_max        0      0               0               0       706  4.618528e-14  4.636671e-15   True
+        lad_mean        0      0               0               0       706  4.618528e-14  2.911588e-15   True
+          lad_cv        0      0               0               0       690  5.773160e-15  4.876592e-15   True
+        p_single        0      0               0               0       768  5.684342e-14  4.987608e-15   True
+          p_last        0      0               0               0       768  5.684342e-14  4.149956e-15   True
+ratio_last_first        0      0               0               0       768  4.662937e-15  4.453374e-15   True
+    OpenGapSpace        0      0               0               0       758  5.684342e-14  3.966002e-15   True
+  ClosedGapSpace        0      0               0               0       768  5.684342e-14  4.531967e-15   True
+        Euphotic        0      0               0               0       768  5.684342e-14  3.354887e-15   True
+     Oligophotic        0      0               0               0       683  5.329071e-14  4.227063e-15   True
+            vzsd        0      0               0               0       696  6.106227e-16  6.106227e-16   True
+            vzcv        0      0               0               0       696  5.400125e-13  4.536137e-15   True
+ kde_peaks_count        0      0               0               0       768  0.000000e+00  0.000000e+00   True
+          rumple        0      0               0               0       768  3.019807e-14  4.625446e-15   True
+          tree_n        0      0               0               0       768  0.000000e+00  0.000000e+00   True
+     tree_h_mean        0      0               0               0       768  5.684342e-14  3.284791e-15   True
+       tree_h_sd        0      0               0               0       768  4.796163e-14  5.310903e-15   True
+       tree_h_cv        0      0               0               0       768  6.938894e-16  6.938894e-16   True
+      tree_h_max        0      0               0               0       768  0.000000e+00  0.000000e+00   True
+     tree_h_gini        0      0               0               0       768  5.273559e-16  5.273559e-16   True
+  tree_h_shannon        0      0               0               0       768  5.329071e-15  4.304161e-15   True
+   crown_m2_mean        0      0               0               0       768  5.684342e-14  2.951963e-15   True
+     crown_m2_sd        0      0               0               0       768  5.506706e-14  5.010249e-15   True
+    mesh  ref   pc  both  crown_equal  h_equal
+08MD4295 3080 3080  3080         3080     3080
+08OC0957 1966 1966  1966         1966     1966
+08NC0725 1727 1727  1727         1727     1727
+08MC7931 2053 2053  2053         2053     2053
+    mesh   points  seconds
+08MD4295 11927141 2.018812
+08OC0957  9264671 0.718781
+08NC0725 35137492 1.975757
+08MC7931 28165131 1.648580
+== torch-cpu (shizuoka): 4 of 4 datasets verified
+          metric  missing  extra  class_mismatch  value_mismatch  n_finite  max_abs_diff  max_rel_diff  equal
+            zq20        0      0               0               0       768  1.065814e-14  6.490397e-16   True
+             zcv        0      0               0               0       768  2.312817e-12  1.016583e-13   True
+             CRR        0      0               0               0       768  2.940537e-12  2.940537e-12   True
+        zentropy        0      0               0               0       768  8.881784e-16  8.881784e-16   True
+          zpcum7        0      0               0               0       768  7.105427e-14  4.437066e-15   True
+          zpcum9        0      0               0               0       768  7.105427e-14  2.809000e-15   True
+     pz_above_30        0      0               0               0       768  4.973799e-14  4.367364e-15   True
+              L4        0      0               0               0       768  2.813888e-12  2.813888e-12   True
+           Lskew        0      0               0               0       768  5.401996e-11  5.401996e-11   True
+           Lkurt        0      0               0               0       768  3.119366e-11  3.119366e-11   True
+         lad_max        0      0               0               0       706  4.618528e-14  4.636671e-15   True
+        lad_mean        0      0               0               0       706  4.618528e-14  2.911588e-15   True
+          lad_cv        0      0               0               0       690  5.773160e-15  4.876592e-15   True
+        p_single        0      0               0               0       768  5.684342e-14  4.987608e-15   True
+          p_last        0      0               0               0       768  5.684342e-14  4.149956e-15   True
+ratio_last_first        0      0               0               0       768  4.662937e-15  4.453374e-15   True
+    OpenGapSpace        0      0               0               0       758  5.684342e-14  3.966002e-15   True
+  ClosedGapSpace        0      0               0               0       768  5.684342e-14  4.531967e-15   True
+        Euphotic        0      0               0               0       768  5.684342e-14  3.354887e-15   True
+     Oligophotic        0      0               0               0       683  5.329071e-14  4.227063e-15   True
+            vzsd        0      0               0               0       696  6.106227e-16  6.106227e-16   True
+            vzcv        0      0               0               0       696  5.400125e-13  4.536137e-15   True
+ kde_peaks_count        0      0               0               0       768  0.000000e+00  0.000000e+00   True
+          rumple        0      0               0               0       768  3.019807e-14  4.625446e-15   True
+          tree_n        0      0               0               0       768  0.000000e+00  0.000000e+00   True
+     tree_h_mean        0      0               0               0       768  5.684342e-14  3.284791e-15   True
+       tree_h_sd        0      0               0               0       768  4.796163e-14  5.310903e-15   True
+       tree_h_cv        0      0               0               0       768  6.938894e-16  6.938894e-16   True
+      tree_h_max        0      0               0               0       768  0.000000e+00  0.000000e+00   True
+     tree_h_gini        0      0               0               0       768  5.273559e-16  5.273559e-16   True
+  tree_h_shannon        0      0               0               0       768  5.329071e-15  4.304161e-15   True
+   crown_m2_mean        0      0               0               0       768  5.684342e-14  2.951963e-15   True
+     crown_m2_sd        0      0               0               0       768  5.506706e-14  5.010249e-15   True
+    mesh  ref   pc  both  crown_equal  h_equal
+08MD4295 3080 3080  3080         3080     3080
+08OC0957 1966 1966  1966         1966     1966
+08NC0725 1727 1727  1727         1727     1727
+08MC7931 2053 2053  2053         2053     2053
+    mesh   points   seconds
+08MD4295 11927141  7.136815
+08OC0957  9264671  5.818894
+08NC0725 35137492 21.547735
+08MC7931 28165131 17.094725
+== torch-cuda32 (shizuoka): 4 of 4 datasets verified
+          metric  missing  extra  class_mismatch  value_mismatch  n_finite  max_abs_diff  max_rel_diff  equal
+            zq20        0      0               0               0       768  2.778625e-06  3.191475e-07   True
+             zcv        0      0               0               2       768  1.504204e-05  1.148054e-06  False
+             CRR        0      0               0              53       768  1.098159e-05  1.098159e-05  False
+        zentropy        0      0               0               0       768  8.800405e-08  8.800405e-08   True
+          zpcum7        0      0               0              26       768  1.216726e+00  1.402274e-02  False
+          zpcum9        0      0               0              21       768  3.259699e-01  3.276582e-03  False
+     pz_above_30        0      0               0               0       768  3.073458e-06  1.016094e-07   True
+              L4        0      0               0             498       768  1.323352e-05  1.323352e-05  False
+           Lskew        0      0               0              66       768  1.177060e-05  1.177060e-05  False
+           Lkurt        0      0               0             312       768  8.808541e-06  8.808541e-06  False
+         lad_max        0      0               0               0       706  9.206162e-07  1.335243e-07   True
+        lad_mean        0      0               0               0       706  9.020172e-07  5.817516e-08   True
+          lad_cv        0      0               0               1       690  1.781787e-06  1.323793e-06  False
+        p_single        0      0               0               0       768  5.897555e-06  8.632524e-08   True
+          p_last        0      0               0               0       768  2.382848e-06  9.643426e-08   True
+ratio_last_first        0      0               0               0       768  4.423239e-08  4.224450e-08   True
+    OpenGapSpace        0      0               0               0       758  4.086155e-06  9.295307e-08   True
+  ClosedGapSpace        0      0               0               0       768  5.872869e-06  9.596723e-08   True
+        Euphotic        0      0               0               0       768  5.301392e-06  9.055522e-08   True
+     Oligophotic        0      0               0               0       683  3.233132e-06  9.494731e-08   True
+            vzsd        0      0               0               0       696  3.074541e-08  3.074541e-08   True
+            vzcv        0      0               0               0       696  2.173634e-05  2.061619e-07   True
+ kde_peaks_count        0      0               0               0       768  0.000000e+00  0.000000e+00   True
+          rumple        0      0               0               0       768  3.019807e-14  4.625446e-15   True
+          tree_n        0      0               0               0       768  0.000000e+00  0.000000e+00   True
+     tree_h_mean        0      0               0               0       768  5.684342e-14  3.284791e-15   True
+       tree_h_sd        0      0               0               0       768  4.796163e-14  5.310903e-15   True
+       tree_h_cv        0      0               0               0       768  6.938894e-16  6.938894e-16   True
+      tree_h_max        0      0               0               0       768  0.000000e+00  0.000000e+00   True
+     tree_h_gini        0      0               0               0       768  5.273559e-16  5.273559e-16   True
+  tree_h_shannon        0      0               0               0       768  5.329071e-15  4.304161e-15   True
+   crown_m2_mean        0      0               0               0       768  5.684342e-14  2.951963e-15   True
+     crown_m2_sd        0      0               0               0       768  5.506706e-14  5.010249e-15   True
+    mesh  ref   pc  both  crown_equal  h_equal
+08MD4295 3080 3080  3080         3080     3080
+08OC0957 1966 1966  1966         1966     1966
+08NC0725 1727 1727  1727         1727     1727
+08MC7931 2053 2053  2053         2053     2053
+    mesh   points  seconds
+08MD4295 11927141 2.822505
+08OC0957  9264671 1.936288
+08NC0725 35137492 6.927229
+08MC7931 28165131 5.508406

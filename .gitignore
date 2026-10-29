@@ -21,3 +21,6 @@ docs/data/mb_*.parquet
 tests/data/ref/*.log
 validation/ref_subset/*.csv
 validation/ref_subset/*.tif
+validation/ref_shizuoka/*.tif
+validation/ref_shizuoka/*.other.log
+validation/ref_shizuoka/*.pfs.log

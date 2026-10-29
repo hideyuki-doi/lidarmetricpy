@@ -163,6 +163,12 @@ not redistributed here; validation/make_testdata.py, make_fulltile.py and make_r
 clips from the original tiles (`PCM_LAZ_DIR`, `PCM_DEM_DIR`). The reference outputs of the R and Python
 packages are included (validation/ref, validation/ref_full).
 
+Second data set: four whole tiles (400 m × 300 m) of the Shizuoka Prefecture airborne lidar (VIRTUAL SHIZUOKA,
+CC BY 4.0; 2021 and 2025 releases, 77–293 pts/m², up to 5 returns, JGD2011 Plane VIII). validation/fetch_shizuoka.sh
+downloads the point clouds and ground grids from the public bucket, validation/make_shizuoka.py normalizes them
+with the 0.5 m ground grid, run_ref_shizuoka.sh makes the references (validation/ref_shizuoka), and
+`compare.py --set shizuoka` / `compare_other.py --set shizuoka` compare.
+
 Checked with the strict comparator (no missing or extra cell, same NA pattern, values within 1e-6 relative):
 
 | data | cells | trees | result |
@@ -170,8 +176,10 @@ Checked with the strict comparator (no missing or extra cell, same NA pattern, v
 | 4 clips, 52–133 pts/m² | 400 | 4,275 | 33/33 metrics equal in every cell (max relative diff 2.4e-12); all tree tops and crown areas equal — cupy, torch-cuda, torch-cpu, numpy |
 | 2 full tiles (90 M and 48 M points) | 2,400 | 23,559 | all metrics, tree tops and crown areas equal (all four float64 backends) |
 | other packages, 4 clips + 2 full tiles | 400 + 2,400 | – | leafR / PyForestScan / forestr ENL / ForestGapR: 17/17 equal on all backends (max diff 3.4e-12) |
+| Shizuoka, 4 whole tiles (84 M points) | 768 | 8,826 | 33/33 metrics equal in every cell (max relative diff 5.4e-11); all tree tops and crown areas equal; 17/17 other-package metrics equal — all four float64 backends |
 | canopyLazR, 4 raw clips × 10 m and 5 m | 12,600 columns | – | all 9 rasters equal (max diff 3.1e-11) |
-| float32 (MPS-like, tested as torch-cuda32) | 2,800 | 27,834 | trees, crowns and the 17 other-package metrics equal; 28/33 lidRmetrics metrics equal in every cell (kde_peaks_count is computed in float64); zpcum7/9 within 0.03 % points, L4, Lkurt, lad_cv within 1.3e-5 |
+| float32 (MPS-like, tested as torch-cuda32), Kanagawa | 2,800 | 27,834 | trees, crowns and the 17 other-package metrics equal; 28/33 lidRmetrics metrics equal in every cell (kde_peaks_count is computed in float64); zpcum7/9 within 0.03 % points, L4, Lkurt, lad_cv within 1.3e-5 |
+| float32, Shizuoka | 768 | 8,826 | trees, crowns and the 17 other-package metrics equal; 25/33 equal; zpcum7/9 within 1.2 % points (26 and 21 cells), zcv, CRR, L4, Lskew, Lkurt, lad_cv within 1.4e-5 relative |
 
 Apple MPS itself has not been run; the float32 path was tested on CUDA. Figures and tables for a methods
 paper are in docs/ (docs/make_paper_figs.py), with notes in Japanese in docs/paper_notes.md.
