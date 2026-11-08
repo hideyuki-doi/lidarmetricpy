@@ -183,13 +183,13 @@ Checked with the strict comparator (no missing or extra cell, same NA pattern, v
 
 | data | cells | trees | result |
 |---|---|---|---|
-| 4 clips, 52–133 pts/m² | 400 | 4,275 | 33/33 metrics equal in every cell (max relative diff 2.4e-12); all tree tops and crown areas equal — cupy, torch-cuda, torch-cpu, numpy |
-| 2 full tiles (90 M and 48 M points) | 2,400 | 23,559 | all metrics, tree tops and crown areas equal (all four float64 backends) |
+| 4 clips, 52–133 pts/m² | 400 | 4,275 | 120/120 columns (111 metrics_set3 + 9 tree summaries) equal in every cell (max relative diff 2.4e-12); all tree tops and crown areas equal — cupy, torch-cuda, torch-cpu, numpy (0.4.0) |
+| 2 full tiles (90 M and 48 M points) | 2,400 | 23,559 | 120/120 columns, tree tops and crown areas equal (all four float64 backends; 0.4.0) |
 | other packages, 4 clips + 2 full tiles | 400 + 2,400 | – | leafR / PyForestScan / forestr ENL / ForestGapR: 17/17 equal on all backends (max diff 3.4e-12) |
-| Shizuoka, 4 whole tiles (84 M points) | 768 | 8,826 | 33/33 metrics equal in every cell (max relative diff 5.4e-11); all tree tops and crown areas equal; 17/17 other-package metrics equal — all four float64 backends |
+| Shizuoka, 4 whole tiles (84 M points) | 768 | 8,826 | 120/120 columns equal in every cell (max relative diff 8.2e-11); all tree tops and crown areas equal; 17/17 other-package metrics equal — all four float64 backends (0.4.0) |
 | canopyLazR, 4 raw clips × 10 m and 5 m | 12,600 columns | – | all 9 rasters equal (max diff 3.1e-11) |
-| float32 (MPS-like, tested as torch-cuda32), Kanagawa | 2,800 | 27,834 | trees, crowns and the 17 other-package metrics equal; 28/33 lidRmetrics metrics equal in every cell (kde_peaks_count is computed in float64); zpcum7/9 within 0.03 % points, L4, Lkurt, lad_cv within 1.3e-5 |
-| float32, Shizuoka | 768 | 8,826 | trees, crowns and the 17 other-package metrics equal; 25/33 equal; zpcum7/9 within 1.2 % points (26 and 21 cells), zcv, CRR, L4, Lskew, Lkurt, lad_cv within 1.4e-5 relative |
+| float32 (MPS-like, tested as torch-cuda32), Kanagawa clips | 400 | 4,275 | trees and crowns equal; 94/111 metrics_set3 outputs equal in every cell; the others within 0.03 % (relative) except zpcum1–9 and HOME (up to 0.14 %) (0.4.0) |
+| float32, Shizuoka | 768 | 8,826 | trees and crowns equal; 85/111 equal; the others within 0.03 % (relative) except zpcum1–9 and HOME (up to 10 %, a point near a class boundary changes class) (0.4.0) |
 
 Apple MPS itself has not been run; the float32 path was tested on CUDA. Figures and tables for a methods
 paper are in docs/ (docs/make_paper_figs.py), with notes in Japanese in docs/paper_notes.md.
@@ -217,7 +217,8 @@ same on both sides (validation/run_timing_lidr.sh, run_timing_py.sh, backend_com
 | lidR + lidRmetrics, 24 metrics (R, 1 core) | 165.7 / 133.9 | 205.3 / 156.2 | – | 9.6 / 5.3 |
 | lidR + lidRmetrics, metrics_set3 (R, 1 core) | 174.9 / 140.8 | 214.6 / 163.3 | – | 9.6 / 5.3 |
 
-For the same 24 metrics, CuPy is ~30 times faster than lidR in either interval (work 165.7 / 5.5 s, whole
+(Measured with 0.3.2, 24 metrics; 0.4.0 computes all 111 and is being re-timed: on a shared machine CuPy took
+6.9 s and NumPy 96 s for the 90.5 M tile against 174.9 s for lidR's metrics_set3.) For the same 24 metrics, CuPy is ~30 times faster than lidR in either interval (work 165.7 / 5.5 s, whole
 process 205.3 / 6.9 s), NumPy 3–4 times (165.7 / 53.4 s, 205.3 / 54.4 s).
 
 | many tiles | seconds per tile |
