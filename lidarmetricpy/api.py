@@ -80,6 +80,8 @@ class Options:
     gap_threshold: float = 10.0        # ForestGapR getForestGaps(threshold)
     gap_size: tuple = (1.0, 1e4)       # ForestGapR getForestGaps(size), m2
     laz_threads: str = "auto"          # "parallel" | "single" | "auto" (= parallel lazrs decoder; measured fastest)
+    float32_exact: bool = True         # float32 devices (Apple MPS): lidRmetrics metrics in float64 on the CPU
+    #                                    (equal to lidR); False keeps them on the device (faster, ~1e-5 off)
     closed_edges: bool = True          # points exactly on the right / bottom outer edge belong to the last column /
     #                                    row, as in lidR (terra); False: half-open grid, for tiles that share edges
 
@@ -529,7 +531,16 @@ def _block(B, grid, opt, x, y, z, P, r0, r1, c0, c1, T=None, acc=None):
     zd = B.asarray(z)
     rn = B.astype(B.asarray(P["rn"]), i64)
     nr = B.astype(B.asarray(P["nr"]), i64)
-    m = area_metrics(B, cid, zd, rn, nr, vx, vy, ncell, zmin=opt.zmin, bw=opt.kde_bw, it=B.asarray(P["it"]))
+    if opt.float32_exact:
+        # sums, moments, slice classes and quantile interpolation lose digits in float32: compute the
+        # lidRmetrics metrics on the host in float64 (the NumPy backend's values); the GPU keeps the rest
+        H = NumpyLike(np, "numpy")
+        m = area_metrics(H, cid_h.astype(np.int64), np.asarray(z, np.float64), np.asarray(P["rn"], np.int64),
+                         np.asarray(P["nr"], np.int64), (_round_away(x) - bx0).astype(np.int64),
+                         (_round_away(y) - by0).astype(np.int64), ncell, zmin=opt.zmin, bw=opt.kde_bw,
+                         it=np.asarray(P["it"]))
+    else:
+        m = area_metrics(B, cid, zd, rn, nr, vx, vy, ncell, zmin=opt.zmin, bw=opt.kde_bw, it=B.asarray(P["it"]))
     del vx, vy, rn, nr
     if opt.other_packages:
         m.update(extra_metrics(B, cid, zd, ncell))

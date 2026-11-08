@@ -140,7 +140,7 @@ lists them.
 
 Known differences: when all heights above zmin in a cell are equal, R's Lmoments package returns rounding noise
 for Lskew and Lkurt (NaN, ±Inf or any number, since L2 = 0); lidarmetricpy returns NA. Float64 backends differ
-from each other by ~1e-14 in sums over many points. The float32 path (Apple MPS) is not exact (see below).
+from each other by ~1e-14 in sums over many points. On float32 devices (Apple MPS) the lidRmetrics metrics are computed in float64 on the CPU by default (`Options(float32_exact=True)`), which makes them exact; `float32_exact=False` is faster but not exact (see below).
 
 ## Tests
 
@@ -188,8 +188,8 @@ Checked with the strict comparator (no missing or extra cell, same NA pattern, v
 | other packages, 4 clips + 2 full tiles | 400 + 2,400 | – | leafR / PyForestScan / forestr ENL / ForestGapR: 17/17 equal on all backends (max diff 3.4e-12) |
 | Shizuoka, 4 whole tiles (84 M points) | 768 | 8,826 | 120/120 columns equal in every cell (max relative diff 8.2e-11); all tree tops and crown areas equal; 17/17 other-package metrics equal — all four float64 backends (0.4.0) |
 | canopyLazR, 4 raw clips × 10 m and 5 m | 12,600 columns | – | all 9 rasters equal (max diff 3.1e-11) |
-| float32 (MPS-like, tested as torch-cuda32), Kanagawa clips | 400 | 4,275 | trees and crowns equal; 94/111 metrics_set3 outputs equal in every cell; the others within 0.03 % (relative) except zpcum1–9 and HOME (up to 0.14 %) (0.4.0) |
-| float32, Shizuoka | 768 | 8,826 | trees and crowns equal; 85/111 equal; the others within 0.03 % (relative) except zpcum1–9 and HOME (up to 10 %, a point near a class boundary changes class) (0.4.0) |
+| float32 (MPS-like, tested as torch-cuda32), Kanagawa clips | 400 | 4,275 | with the default `float32_exact=True`: 120/120 columns and 17/17 other-package metrics equal; with `float32_exact=False` 94/111 equal, the others within 0.03 % except zpcum1–9 and HOME (up to 0.14 %) (0.4.0) |
+| float32, Shizuoka | 768 | 8,826 | `float32_exact=True`: 120/120 equal; `False`: 85/111 equal, the others within 0.03 % except zpcum1–9 and HOME (up to 10 %, a point near a class boundary changes class) (0.4.0) |
 
 Apple MPS itself has not been run; the float32 path was tested on CUDA. Figures and tables for a methods
 paper are in docs/ (docs/make_paper_figs.py), with notes in Japanese in docs/paper_notes.md.

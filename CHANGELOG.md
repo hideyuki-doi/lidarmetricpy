@@ -16,6 +16,11 @@ backend (4 Kanagawa clips, 2 full tiles, 4 Shizuoka tiles: 3,568 cells; 23 singl
 - Column order follows metrics_set3 (`lidarmetricpy.area.SET3_COLUMNS`), then `enl`.
 - New oracle cases: six height layers (more than four KDE peaks), a gap in return numbers, HOME with tied heights
   and intensities.
+- **float32 devices (Apple MPS) are now exact**: `Options(float32_exact=True)`, the default, computes the
+  lidRmetrics metrics in float64 on the CPU (sums, moments, slice classes and quantile interpolation lose digits
+  in float32); trees, canopy, rumple and the other packages' metrics stay on the device. All 120 columns and the
+  17 other-package metrics equal lidR on the clips and the Shizuoka tiles with float32 (tested as torch-cuda32).
+  `float32_exact=False` keeps the faster device path (differences up to ~1e-5, more for zpcum and HOME).
 - AGENTS.md: guide for AI coding assistants.
 
 ## 0.3.2 (2026-10-29)
