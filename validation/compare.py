@@ -17,13 +17,14 @@ sys.path.insert(0, str(HERE.parent))
 from lidarmetricpy import Options, compute_tile  # noqa: E402
 from refcheck import check, occupancy, require  # noqa: E402
 
-METRICS = ["zq20", "zcv", "CRR", "zentropy", "zpcum7", "zpcum9", "pz_above_30", "L4", "Lskew", "Lkurt",
-           "lad_max", "lad_mean", "lad_cv", "p_single", "p_last", "ratio_last_first", "OpenGapSpace",
-           "ClosedGapSpace", "Euphotic", "Oligophotic", "vzsd", "vzcv", "kde_peaks_count", "rumple",
-           "tree_n", "tree_h_mean", "tree_h_sd", "tree_h_cv", "tree_h_max", "tree_h_gini", "tree_h_shannon",
-           "crown_m2_mean", "crown_m2_sd"]
+from lidarmetricpy.area import SET3_COLUMNS  # noqa: E402
+
+# all 111 outputs of lidRmetrics::metrics_set3 and the tree summaries
+METRICS = list(SET3_COLUMNS) + ["tree_n", "tree_h_mean", "tree_h_sd", "tree_h_cv", "tree_h_max", "tree_h_gini",
+                                "tree_h_shannon", "crown_m2_mean", "crown_m2_sd"]
 # data set: manifest, reference folder, suffix of the output files
-SETS = {"clips": ("data/clips.json", "ref", ""), "shizuoka": ("data/shizuoka.json", "ref_shizuoka", "_shizuoka")}
+SETS = {"clips": ("data/clips.json", "ref", ""), "shizuoka": ("data/shizuoka.json", "ref_shizuoka", "_shizuoka"),
+        "full": ("data/full.json", "ref_full", "_full")}
 
 
 def run(backend, ds="clips"):

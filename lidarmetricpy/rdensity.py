@@ -540,3 +540,63 @@ def kde_peaks_count(z, start, count, bw=2.0):
     nfac, m, kt = _factors()
     return _peaks_cells(np.ascontiguousarray(z, np.float64), np.asarray(start, np.int64),
                         np.asarray(count, np.int64), float(bw), nfac, m, kt)
+
+
+@_jit
+def _kde_cell(x, bw, nfac, m, kt, out):
+    """lidRmetrics::metrics_kde(npeaks = 4) of one cell into out[0:12]: peak count, then the elevations and
+    density values of up to four peaks (the highest four if more, reported by decreasing elevation) and the
+    differences between consecutive reported elevations."""
+    y = _density_y(x, bw, nfac, m, kt)
+    xmn = x[0]
+    xmx = x[0]
+    for v in x:
+        if v < xmn:
+            xmn = v
+        if v > xmx:
+            xmx = v
+    xo = _seq_len(xmn - 3.0 * bw, xmx + 3.0 * bw, 512)
+    px = np.empty(512)
+    py = np.empty(512)
+    cnt = 0
+    prev = 0.0
+    for t in range(1, y.shape[0]):                  # get_peaks: which(diff(sign(diff(y))) < 0) + 1
+        d = y[t] - y[t - 1]
+        s = 1.0 if d > 0 else (-1.0 if d < 0 else 0.0)
+        if t >= 2 and s - prev < 0:
+            px[cnt] = xo[t - 1]
+            py[cnt] = y[t - 1]
+            cnt += 1
+        prev = s
+    out[0] = cnt
+    k = cnt
+    sel = np.arange(cnt)
+    if cnt > 4:                                     # order(y, decreasing = TRUE), stable; first four
+        sel = np.argsort(-py[:cnt], kind="mergesort")[:4]
+        k = 4
+    sx = px[sel]
+    sy = py[sel]
+    o = np.argsort(-sx, kind="mergesort")           # order(x, decreasing = TRUE)
+    for j in range(k):
+        out[1 + j] = sx[o[j]]
+        out[5 + j] = sy[o[j]]
+    for j in range(k - 1):
+        out[9 + j] = abs(sx[o[j + 1]] - sx[o[j]])
+
+
+@_pjit
+def _kde_cells(z, start, count, bw, nfac, m, kt):
+    out = np.full((start.shape[0], 12), np.nan)
+    for c in _prange(start.shape[0]):
+        if count[c] > 2:
+            _kde_cell(z[start[c]:start[c] + count[c]], bw, nfac, m, kt, out[c])
+    return out
+
+
+def kde_peaks(z, start, count, bw=2.0):
+    """metrics_kde per cell (see _kde_cell); NA where count <= 2. z holds each cell's heights (> zmin) in file
+    order, cell c at z[start[c]:start[c] + count[c]]."""
+    nfac, m, kt = _factors()
+    return _kde_cells(np.ascontiguousarray(z, np.float64), np.asarray(start, np.int64),
+                      np.asarray(count, np.int64), float(bw), nfac, m, kt)
+

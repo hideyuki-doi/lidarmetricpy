@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.4.0 (2026-11-08)
+
+All 111 outputs of `lidRmetrics::metrics_set3` instead of 24, each equal to lidRmetrics 0.1.5 on every float64
+backend (4 Kanagawa clips, 2 full tiles, 4 Shizuoka tiles: 3,568 cells; 23 single-cell oracle cases).
+
+- **New columns** (87): the rest of metrics_basic (zmax, zmin, zmean, zvar, zsd, zskew, zkurt), all 21
+  percentiles, metrics_percabove (pzabovemean, pzabove2–30), ziqr / zMADmean / zMADmedian, zpcum1–9, L1–L3 and
+  Lcoefvar, lad_min and lad_sum, all 8 metrics_interval classes, all of metrics_echo, metrics_echo2
+  (n_return_1–4), vn / vFRall / vFRcanopy / vzrumple, the KDE peak elevations, values and differences, and HOME.
+- **Intensity** is read (LAZ `intensity`; `intensity` key for in-memory input, 1 when absent as in the oracle)
+  for HOME. Memory constants grew by 4 bytes per point.
+- lidRmetrics quirks reproduced: `n_return_k` is the count of the k-th smallest return number present (the
+  table's factor is converted to level codes); `lad_sum` is 0 when LAD() returns no layer; `p_intermidiate`.
+- Column order follows metrics_set3 (`lidarmetricpy.area.SET3_COLUMNS`), then `enl`.
+- New oracle cases: six height layers (more than four KDE peaks), a gap in return numbers, HOME with tied heights
+  and intensities.
+- AGENTS.md: guide for AI coding assistants.
+
 ## 0.3.2 (2026-10-29)
 
 Fixes from the final review (of 0.3.1, commit 7d1f2d9). Both were reproduced and have regression tests.

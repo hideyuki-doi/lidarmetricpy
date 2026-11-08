@@ -1,9 +1,12 @@
 # lidarmetricpy
 
+> **AI coding assistants** (Claude Code, Codex, Cursor, …): read [AGENTS.md](AGENTS.md) before using or changing
+> this package. Humans may find it a useful checklist too.
+
 Per-cell forest structure metrics from airborne lidar point clouds on NVIDIA GPUs (CuPy or PyTorch), Apple
 Silicon GPUs (PyTorch MPS, float32) or any CPU (NumPy), with explicit memory budgets. With `Options.lidr()` the
-values equal those of **lidR 4.3.3 + lidRmetrics 0.1.5** for the 24 lidRmetrics metrics and the tree summaries
-listed below (and those of leafR, PyForestScan, forestr, ForestGapR and canopyLazR for their metrics), to
+values equal those of **lidR 4.3.3 + lidRmetrics 0.1.5** for all 111 outputs of `metrics_set3` and the tree
+summaries listed below (and those of leafR, PyForestScan, forestr, ForestGapR and canopyLazR for their metrics), to
 floating-point rounding on every float64 backend.
 
 ```python
@@ -80,23 +83,30 @@ every point of the file, which is the same when the file covers the grid.
 
 ## Metrics (per grid cell)
 
-24 of the 111 outputs of `lidRmetrics::metrics_set3(zmin = 0.5, threshold = c(2, 5, 10, 20, 30),
-zintervals = c(0, 0.5, 2, 5, 10, 20, 30), pixel_size = 1, vox_size = 1)`, with the same definitions and edge
-cases (intensity metrics are not implemented):
+All 111 outputs of `lidRmetrics::metrics_set3(zmin = 0.5, threshold = c(2, 5, 10, 20, 30),
+zintervals = c(0, 0.5, 2, 5, 10, 20, 30), pixel_size = 1, vox_size = 1)`, with the same names, definitions and
+edge cases (column order as in lidRmetrics; `lidarmetricpy.area.SET3_COLUMNS`):
 
 | lidRmetrics function | columns |
 |---|---|
-| metrics_basic | n, zcv |
-| metrics_percentiles | zq20 |
-| metrics_dispersion | CRR, zentropy |
-| metrics_canopydensity | zpcum7, zpcum9 |
-| metrics_interval | pz_above_30 |
-| metrics_Lmoments | L4, Lskew, Lkurt |
-| metrics_lad (lidR::LAD, dz = 1, k = 0.5, z0 = 2) | lad_max, lad_mean, lad_cv |
-| metrics_echo | p_single, p_last, ratio_last_first |
-| metrics_voxels | OpenGapSpace, ClosedGapSpace, Euphotic, Oligophotic, vzsd, vzcv |
-| metrics_kde (bw = 2) | kde_peaks_count |
+| metrics_basic | n, zmax, zmin, zmean, zvar, zsd, zcv, zskew, zkurt |
+| metrics_percentiles | zq1, zq5, zq10, …, zq95, zq99 |
+| metrics_percabove | pzabovemean, pzabove2, pzabove5, pzabove10, pzabove20, pzabove30 |
+| metrics_dispersion | ziqr, zMADmean, zMADmedian, CRR, zentropy |
+| metrics_canopydensity | zpcum1 … zpcum9 |
+| metrics_Lmoments | L1, L2, L3, L4, Lskew, Lkurt, Lcoefvar |
+| metrics_lad (lidR::LAD, dz = 1, k = 0.5, z0 = 2) | lad_min, lad_max, lad_mean, lad_cv, lad_sum |
+| metrics_interval | pz_below_0, pz_0-0.5, pz_0.5-2, pz_2-5, pz_5-10, pz_10-20, pz_20-30, pz_above_30 |
+| metrics_echo | n_first, n_intermediate, n_last, n_single, n_multiple, p_first, p_intermidiate (sic), p_last, p_single, p_multiple, ratio_last_first, ratio_intermediate_first, ratio_multiple_single |
+| metrics_echo2 (KeepReturns = 1:4) | n_return_1 … n_return_4 |
 | metrics_rumple | rumple |
+| metrics_voxels | vn, vFRall, vFRcanopy, vzrumple, vzsd, vzcv, OpenGapSpace, ClosedGapSpace, Euphotic, Oligophotic |
+| metrics_kde (bw = 2, npeaks = 4) | kde_peaks_count, kde_peak1–4_elev, kde_peak1–4_value, kde_peak1–3_diff |
+| metrics_HOME | HOME (height of median energy; uses the point intensities, 1 for in-memory input without them) |
+
+lidRmetrics' own quirks are reproduced, not fixed: `n_return_k` counts the k-th smallest return number present
+in the cell (metrics_echo2 converts the table's factor to its level codes), which equals the count of
+ReturnNumber == k only when return numbers 1..k all occur; `p_intermidiate` keeps its spelling.
 
 Tree summaries per cell from the lidR workflow `rasterize_canopy(res = 0.5, p2r(0.15, knnidw()))` →
 `locate_trees(lmf(ws = 2.5 + 0.15 h, clamped 3–8 m, hmin = 5))` → `dalponte2016(th_tree = 2)`:

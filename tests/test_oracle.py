@@ -6,13 +6,13 @@ import pandas as pd
 import pytest
 
 from lidarmetricpy import Options, compute_tile
-from lidarmetricpy.area import AREA_COLUMNS
+from lidarmetricpy.area import SET3_COLUMNS
 from lidarmetricpy.validate import compare_tables
 from oracle_cases import cases
 from test_reference import BACKENDS
 
 REF = Path(__file__).resolve().parent / "data" / "ref" / "oracle_cases.csv"
-METRICS = ["n"] + [m for m in AREA_COLUMNS if m != "enl"] + ["rumple"]
+METRICS = list(SET3_COLUMNS)                      # all 111 outputs of metrics_set3
 # Documented deviation: when all heights are equal, L2 = 0 and the L-moment ratios of R's Lmoments package
 # are rounding noise (NaN, +-Inf or any number); lidarmetricpy returns NA for Lskew and Lkurt.
 EXCEPTIONS = {("constant", "Lskew"), ("constant", "Lkurt")}
@@ -25,7 +25,7 @@ def test_edge_cases_match_lidrmetrics(backend):
     for name, d in cases().items():
         opt = Options(zmin=d["zmin"], spike_filter=False, zrange=(-np.inf, np.inf), trees=False,
                       other_packages=False)
-        src = dict(x=d["x"], y=d["y"], z=d["z"], return_number=d["rn"], number_of_returns=d["nr"])
+        src = dict(x=d["x"], y=d["y"], z=d["z"], return_number=d["rn"], number_of_returns=d["nr"], intensity=d["it"])
         df = compute_tile(src, 0.0, 25.0, 1, 1, cell=25.0, backend=backend, options=opt)
         assert len(df) == 1 and df.n_points.iloc[0] == len(d["z"]), name
         rows.append(df.assign(case=name))

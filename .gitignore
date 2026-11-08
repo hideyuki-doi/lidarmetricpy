@@ -24,3 +24,6 @@ validation/ref_subset/*.tif
 validation/ref_shizuoka/*.tif
 validation/ref_shizuoka/*.other.log
 validation/ref_shizuoka/*.pfs.log
+validation/lasr/*.tif
+validation/lasr/*.gpkg
+validation/lasr/*_time.txt

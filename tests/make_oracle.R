@@ -9,8 +9,8 @@ rows <- list()
 for (ln in L) {
   p <- strsplit(ln, "\t")[[1]]
   x <- num(p[3]); y <- num(p[4]); z <- num(p[5])
-  rn <- as.integer(num(p[6])); nr <- as.integer(num(p[7]))
-  m <- suppressWarnings(metrics_set3(x = x, y = y, z = z, i = rep(1L, length(z)), ReturnNumber = rn,
+  rn <- as.integer(num(p[6])); nr <- as.integer(num(p[7])); it <- as.integer(num(p[8]))
+  m <- suppressWarnings(metrics_set3(x = x, y = y, z = z, i = it, ReturnNumber = rn,
                                      NumberOfReturns = nr, zmin = as.numeric(p[2]),
                                      threshold = c(2, 5, 10, 20, 30), zintervals = c(0, 0.5, 2, 5, 10, 20, 30),
                                      pixel_size = 1, vox_size = 1))

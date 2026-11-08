@@ -1,4 +1,4 @@
-"""Area-based metrics per grid cell, same definitions as lidRmetrics::metrics_set3 (v0.1.5).
+"""Area-based metrics per grid cell: all 111 outputs of lidRmetrics::metrics_set3 (v0.1.5), same definitions.
 
 All points of a block of cells are processed at once with sort / bincount on the
 backend. Inputs are backend arrays prepared on the host (integer indices are
@@ -23,11 +23,29 @@ from concurrent.futures import ThreadPoolExecutor
 import numpy as np
 
 ZMIN = 0.5
-# median(diff(c(-Inf, 0, 0.5, 2, 5, 10, 20, 30, Inf))) of the zintervals used with lidRmetrics (validation/ref_lidr.R)
-PZ_MEDIAN_DIFF = 7.5
-AREA_COLUMNS = ("zq20", "zcv", "CRR", "zentropy", "zpcum7", "zpcum9", "pz_above_30", "L4", "Lskew", "Lkurt",
-                "lad_max", "lad_mean", "lad_cv", "p_single", "p_last", "ratio_last_first", "OpenGapSpace",
-                "ClosedGapSpace", "Euphotic", "Oligophotic", "vzsd", "vzcv", "kde_peaks_count", "enl")
+PROBS = np.concatenate([[0.01], 0.05 + np.arange(19) * 0.05, [0.99]])   # c(0.01, seq(0.05, 0.95, 0.05), 0.99)
+PROB_NAMES = ["zq" + format(float(p) * 100, ".15g") for p in PROBS]
+THRESHOLDS = (2.0, 5.0, 10.0, 20.0, 30.0)                                  # metrics_percabove(threshold)
+ZINTERVALS = (0.0, 0.5, 2.0, 5.0, 10.0, 20.0, 30.0)                         # metrics_interval(zintervals)
+INTERVAL_NAMES = (["pz_below_0"] + [f"pz_{format(a, 'g')}-{format(b, 'g')}" for a, b in
+                                    zip(ZINTERVALS[:-1], ZINTERVALS[1:])] + ["pz_above_30"])
+KDE_NAMES = (["kde_peaks_count"] + [f"kde_peak{i}_elev" for i in range(1, 5)] +
+             [f"kde_peak{i}_value" for i in range(1, 5)] + [f"kde_peak{i}_diff" for i in range(1, 4)])
+# the 111 outputs of lidRmetrics::metrics_set3 (v0.1.5) in its order, with the arguments of
+# validation/ref_lidr.R (zmin = 0.5, threshold = c(2, 5, 10, 20, 30), zintervals = c(0, 0.5, 2, 5, 10, 20, 30),
+# pixel_size = 1, vox_size = 1); 'enl' (forestr) is computed with the voxels
+SET3_COLUMNS = tuple(
+    ["n", "zmax", "zmin", "zmean", "zvar", "zsd", "zcv", "zskew", "zkurt"] + PROB_NAMES
+    + ["pzabovemean"] + [f"pzabove{format(t, 'g')}" for t in THRESHOLDS]
+    + ["ziqr", "zMADmean", "zMADmedian", "CRR", "zentropy"] + [f"zpcum{i}" for i in range(1, 10)]
+    + ["L1", "L2", "L3", "L4", "Lskew", "Lkurt", "Lcoefvar"]
+    + ["lad_min", "lad_max", "lad_mean", "lad_cv", "lad_sum"] + INTERVAL_NAMES
+    + ["n_first", "n_intermediate", "n_last", "n_single", "n_multiple", "p_first", "p_intermidiate", "p_last",
+       "p_single", "p_multiple", "ratio_last_first", "ratio_intermediate_first", "ratio_multiple_single"]
+    + [f"n_return_{k}" for k in range(1, 5)] + ["rumple"]
+    + ["vn", "vFRall", "vFRcanopy", "vzrumple", "vzsd", "vzcv", "OpenGapSpace", "ClosedGapSpace", "Euphotic",
+       "Oligophotic"] + KDE_NAMES + ["HOME"])
+AREA_COLUMNS = tuple(c for c in SET3_COLUMNS if c not in ("n", "rumple")) + ("enl",)
 
 
 def _rsum(B, a):
@@ -46,7 +64,8 @@ def _voxel_metrics(B, cell_all, z_all, vx_all, vy_all, ncell, zmin):
     # voxels (1 m) — Lefsky light classes and vertical voxel distribution
     vz = B.astype(B.round_away(z_all), B.i64)
     vk = B.astype(vz, B.f) > zmin
-    vox_names = ("OpenGapSpace", "ClosedGapSpace", "Euphotic", "Oligophotic", "vzsd", "vzcv")
+    vox_names = ("vn", "vFRall", "vFRcanopy", "vzrumple", "OpenGapSpace", "ClosedGapSpace", "Euphotic",
+                 "Oligophotic", "vzsd", "vzcv")
     enl = np.full(ncell, np.nan)
     if not bool(B.item(B.sum(B.astype(vk, B.i64)) > 0)):       # no rounded voxel above zmin
         for name in vox_names:
@@ -90,6 +109,14 @@ def _voxel_metrics(B, cell_all, z_all, vx_all, vy_all, ncell, zmin):
         vymax = B.scatter_max(ncell, vc, colk % VY, -big)
         filled = vzmax >= vzmin
         nbox = (vxmax - vxmin + 1) * (vymax - vymin + 1) * (vzmax - vzmin + 1)
+        # metrics_voxels: vn filled voxels; vFRall = vn / voxels of the box; vFRcanopy = vn / voxels from the
+        # box bottom up to the top filled voxel of each filled column (NA without any voxel: create_voxels NULL)
+        nvox = B.bincount(vc, minlength=ncell)
+        below = B.bincount(col_cell, B.astype(col_zmax - vzmin[col_cell] + 1, B.f), ncell)
+        with np.errstate(all="ignore"):
+            out["vn"] = B.where(filled, B.astype(nvox, B.f), B.nan)
+            out["vFRall"] = B.where(filled, B.astype(nvox, B.f) / B.astype(nbox, B.f) * 100, B.nan)
+            out["vFRcanopy"] = B.where(filled, B.astype(nvox, B.f) / below * 100, B.nan)
         few = ~filled | (nbox <= 2)
         with np.errstate(all="ignore"):
             for name, v in (("OpenGapSpace", open_), ("ClosedGapSpace", closed), ("Euphotic", euph),
@@ -114,28 +141,97 @@ def _voxel_metrics(B, cell_all, z_all, vx_all, vy_all, ncell, zmin):
         bad = (zr < 1) | (Fmax == Fmin) | (k_ < 2) | (nfill <= 2)
         out["vzsd"] = B.where(bad, B.nan, fsd)
         out["vzcv"] = B.where(bad, B.nan, fsd / fmean * 100)
+        # metrics_voxstructure: vzrumple = sqrt(sum((freq - brks[1:k])^2)) / k, brks = seq(min(Z), max(Z), 1)
+        brk = B.astype(vzmin[:, None] + (jj - 1), B.f)
+        with np.errstate(all="ignore"):
+            dist = B.sqrt(_rsum(B, B.where(vm, (Fn - brk) ** 2, 0.0)))
+            out["vzrumple"] = B.where(bad, B.nan, dist / B.astype(B.maximum(zr, 1), B.f))
 
     return out, enl
 
 
-def area_metrics(B, cell, z, rn, nr, vx, vy, ncell, zmin=ZMIN, bw=2.0, above=30.0):
-    """Metrics from points above zmin. Returns dict name -> numpy array (ncell)."""
+def _quantiles(B, zs, start, n, has, probs, npts):
+    """stats::quantile(type = 7) of each cell's sorted values: (1 - h) x[lo] + h x[hi] where index > lo and
+    x[hi] != x[lo] (R's formula), NA for empty cells."""
+    nf = B.astype(n, B.f)
+    last_i = B.minimum(B.maximum(start + n - 1, 0), npts - 1)
+    out = []
+    for p in probs:
+        index = 1 + B.maximum(nf - 1, 0.0) * float(p)
+        lo = B.floor(index)
+        hi = B.ceil(index)
+        i0 = B.minimum(start + B.astype(lo, B.i64) - 1, last_i)
+        i1 = B.minimum(start + B.astype(hi, B.i64) - 1, last_i)
+        x0, x1 = zs[B.maximum(i0, 0)], zs[B.maximum(i1, 0)]
+        h = index - lo
+        q = B.where((index > lo) & (x1 != x0), (1 - h) * x0 + h * x1, x0)
+        out.append(B.where(has, q, B.nan))
+    return out
+
+
+def _seg_sorted(B, cell, v, ncell):
+    """Sort values by (cell, value); returns sorted values, start, count."""
+    o = B.lexsort([v, cell])
+    vs = v[o]
+    n = B.bincount(cell, minlength=ncell)
+    start = B.concatenate([B.zeros(1, B.i64), B.cumsum(n, 0)[:-1]])
+    return vs, start, n
+
+
+def _home(B, cell, z, it, ncell):
+    """lidRmetrics::metrics_HOME: z of the point where |cumsum(i) by increasing z - cumsum(i) by decreasing z|
+    is smallest; both orders are stable (ties in file order) and the first minimum in decreasing order wins.
+    cell, z, it: points above zmin in file order. Intensities are integers, so the sums are exact."""
+    npts = int(cell.shape[0])
+    idx = B.arange(npts, dtype=B.i64)
+    n = B.bincount(cell, minlength=ncell)
+    start = B.concatenate([B.zeros(1, B.i64), B.cumsum(n, 0)[:-1]])
+    itf = B.astype(it, B.f)
+
+    def segcum(o):
+        c = B.cumsum(itf[o], 0)
+        c0 = B.concatenate([B.zeros(1, B.f), c])[start]          # sum before each cell's first point
+        return c - c0[cell[o]]
+
+    oa = B.lexsort([idx, z, cell])                                # increasing z, file order
+    od = B.lexsort([idx, -z, cell])                               # decreasing z, file order
+    c1 = B.zeros(npts, dtype=B.f)
+    c2 = B.zeros(npts, dtype=B.f)
+    c1[oa] = segcum(oa)
+    c2[od] = segcum(od)
+    dd = B.abs(c1 - c2)[od]                                       # in decreasing order
+    cd = cell[od]
+    dmin = B.scatter_min(ncell, cd, dd, B.inf)
+    pos = B.arange(npts, dtype=B.i64)
+    big = 2 ** 62
+    first = B.scatter_min(ncell, cd[dd == dmin[cd]], pos[dd == dmin[cd]], big)
+    has = n > 0
+    zd = z[od]
+    return B.where(has, zd[B.minimum(first, npts - 1)], B.nan)
+
+
+def area_metrics(B, cell, z, rn, nr, vx, vy, ncell, zmin=ZMIN, bw=2.0, it=None):
+    """lidRmetrics::metrics_set3 (all 111 outputs but rumple, which needs x and y; see rumple_cells) and
+    forestr's ENL per cell. cell, z, rn, nr, vx, vy, it: points in file order (it: intensity, 1 if None,
+    as in tests/make_oracle.R). Returns dict name -> numpy array (ncell)."""
     out = {}
     vox, enl = _voxel_metrics(B, cell, z, vx, vy, ncell, zmin)     # rounded heights of every point
     m = z > zmin
-    cell, zs, rns, nrs, vx, vy = cell[m], z[m], rn[m], nr[m], vx[m], vy[m]
+    cell, zs, rns, nrs = cell[m], z[m], rn[m], nr[m]
+    its = it[m] if it is not None else None
     npts = int(cell.shape[0])
     if npts == 0:
         res = {k: np.full(ncell, np.nan) for k in AREA_COLUMNS}
-        res["n"] = np.full(ncell, np.nan)                   # metrics_basic: NA without points above zmin
-        res["pz_above_30"] = np.zeros(ncell)                # metrics_interval: 0 without points
+        res["n"] = np.full(ncell, np.nan)
+        for k in INTERVAL_NAMES:                                 # metrics_interval: 0 without points
+            res[k] = np.zeros(ncell)
         res.update({k: B.to_numpy(v).astype(np.float64) for k, v in vox.items()})
         res["enl"] = enl
         return res
-    # kde_peaks_count: R's density() of each cell's heights in file order (the order lidR passes them)
-    kde = _kde_peaks(B, cell, zs, ncell, bw)
+    kde = _kde_peaks(B, cell, zs, ncell, bw)                      # R's density() in file order
+    out["HOME"] = _home(B, cell, zs, its if its is not None else B.full(npts, 1.0, dtype=B.f), ncell)
     o = B.lexsort([zs, cell])
-    cell, zs, rns, nrs, vx, vy = cell[o], zs[o], rns[o], nrs[o], vx[o], vy[o]
+    cell, zs, rns, nrs = cell[o], zs[o], rns[o], nrs[o]
     n = B.bincount(cell, minlength=ncell)
     nf = B.astype(n, B.f)
     start = B.concatenate([B.zeros(1, B.i64), B.cumsum(n, 0)[:-1]])
@@ -144,17 +240,37 @@ def area_metrics(B, cell, z, rn, nr, vx, vy, ncell, zmin=ZMIN, bw=2.0, above=30.
     zmin_c = B.where(has, zs[B.minimum(start, npts - 1)], B.nan)
     zmax_c = B.where(has, zs[B.minimum(last_i, npts - 1)], B.nan)
 
-    # percentile 20 (type 7)
-    h = (nf - 1) * 0.2
-    lo = B.astype(B.floor(h), B.i64)
-    i0 = B.minimum(start + lo, npts - 1)
-    i1 = B.minimum(i0 + 1, B.minimum(last_i, npts - 1))
-    out["zq20"] = B.where(has, zs[i0] + (h - B.astype(lo, B.f)) * (zs[i1] - zs[i0]), B.nan)
+    # metrics_basic
     s1 = B.segsum(zs, start, n)
     mean = s1 / nf
     zc = zs - mean[cell]                                  # two-pass variance, as R's var()
-    sd = B.sqrt(B.segsum(zc * zc, start, n) / (nf - 1))
-    out["zcv"] = sd / mean * 100
+    s2 = B.segsum(zc * zc, start, n)
+    var = s2 / (nf - 1)
+    sd = B.sqrt(var)
+    with np.errstate(all="ignore"):
+        out["zmax"], out["zmin"], out["zmean"] = zmax_c, zmin_c, B.where(has, mean, B.nan)
+        out["zvar"], out["zsd"] = B.where(has, var, B.nan), B.where(has, sd, B.nan)
+        out["zcv"] = sd / mean * 100
+        out["zskew"] = (B.segsum(zc * zc * zc, start, n) / nf) / (s2 / nf) ** 1.5
+        out["zkurt"] = nf * B.segsum(zc * zc * zc * zc, start, n) / (s2 * s2)
+
+    # metrics_percentiles and the quartiles of IQR()
+    qs = _quantiles(B, zs, start, n, has, list(PROBS) + [0.25, 0.75, 0.5], npts)
+    for name, q in zip(PROB_NAMES, qs):
+        out[name] = q
+    q25, q75, med = qs[-3], qs[-2], qs[-1]
+
+    # metrics_percabove: lidR:::fast_countover counts z > threshold; n = 0 gives 0/0
+    with np.errstate(all="ignore"):
+        out["pzabovemean"] = B.segsum(B.astype(zs > mean[cell], B.f), start, n) / nf * 100
+        for t in THRESHOLDS:
+            out[f"pzabove{format(t, 'g')}"] = B.segsum(B.astype(zs > t, B.f), start, n) / nf * 100
+
+    # metrics_dispersion
+    out["ziqr"] = q75 - q25
+    out["zMADmean"] = B.where(has, B.segsum(B.abs(zc), start, n) / nf, B.nan)
+    dev, dstart, dn = _seg_sorted(B, cell, B.abs(zs - med[cell]), ncell)
+    out["zMADmedian"] = _quantiles(B, dev, dstart, dn, has, [0.5], npts)[0]
     out["CRR"] = (mean - zmin_c) / (zmax_c - zmin_c)
 
     # entropy of 1 m layers: metrics_dispersion passes z1 = z[z > 0] to lidR::entropy (NA when zmax < 2);
@@ -172,8 +288,7 @@ def area_metrics(B, cell, z, rn, nr, vx, vy, ncell, zmin=ZMIN, bw=2.0, above=30.
     counted = _rsum(B, hbf) > 0                     # all points at an integer zmax fall outside: 0/0 -> NA
     out["zentropy"] = B.where((B.nan_to_num(zmax_c, nan=0.0) < 2) | ~has | ~counted, B.nan, ent)
 
-    # cumulative proportions in 10 height slices between zmin and zmax
-    # lidRmetrics::metrics_canopydensity: breaks <- seq(zmin, zmax, (zmax - zmin) / 10); findInterval
+    # metrics_canopydensity: cumulative proportions in 10 slices; breaks <- seq(zmin, zmax, (zmax - zmin) / 10)
     rng = zmax_c - zmin_c
     by = B.sdiv(rng, 10.0)
     nbr = B.floor(rng / by + 1e-10)                       # seq(): n = floor((to - from) / by + 1e-10)
@@ -188,12 +303,18 @@ def area_metrics(B, cell, z, rn, nr, vx, vy, ncell, zmin=ZMIN, bw=2.0, above=30.
     hk = B.astype(B.bincount(cell[valid] * 10 + (kk[valid] - 1), minlength=ncell * 10).reshape(ncell, 10), B.f)
     cum = B.cumsum(hk, 1) / B.sum(hk, 1, keepdims=True) * 100
     flat = has & (zmax_c <= zmin_c)                       # metrics_canopydensity: max <= min -> all 0
-    out["zpcum7"] = B.where(flat, 0.0, cum[:, 6])
-    out["zpcum9"] = B.where(flat, 0.0, cum[:, 8])
-    # metrics_interval(zintervals = c(0, 0.5, 2, 5, 10, 20, 30)): hist(right = FALSE) shifts every break down
-    # by 1e-7 * median(diff(breaks)) = 7.5e-7, so the last class is z >= 30 - 7.5e-7; 0 without points
-    thr = above + (-(1e-07 * PZ_MEDIAN_DIFF))
-    out["pz_above_30"] = B.segsum(B.astype(zs >= thr, B.f), start, n) / B.maximum(nf, 1) * 100
+    for i in range(9):
+        out[f"zpcum{i + 1}"] = B.where(flat, 0.0, cum[:, i])
+
+    # metrics_interval(zintervals): hist(right = FALSE, include.lowest = FALSE) shifts every break down by
+    # 1e-7 * median(diff(breaks)) (breaks with -Inf / Inf: 7.5 here); 0 everywhere without points
+    br = (-np.inf,) + ZINTERVALS + (np.inf,)
+    dfs = np.diff(np.asarray(br))
+    fuzz = 1e-07 * float(np.median(dfs))
+    edges = [b - fuzz for b in br]
+    for k, name in enumerate(INTERVAL_NAMES):
+        sel = (zs >= edges[k]) & (zs < edges[k + 1])
+        out[name] = B.where(has, B.segsum(B.astype(sel, B.f), start, n) / B.maximum(nf, 1) * 100, 0.0)
 
     # L-moments (unbiased probability-weighted moments)
     j = B.astype(B.arange(npts, dtype=B.i64) - start[cell] + 1, B.f)
@@ -211,9 +332,13 @@ def area_metrics(B, cell, z, rn, nr, vx, vy, ncell, zmin=ZMIN, bw=2.0, above=30.
     l4 = 20 * b3 - 30 * b2 + 12 * b1 - b0
     lm_ok = nf >= 4                           # Lmoments() returns min(n, 4) moments; metrics_Lmoments needs 4
     ratio_ok = lm_ok & (zmax_c > zmin_c)      # equal heights: L2 = 0 and R's ratios are rounding noise -> NA
+    out["L1"] = B.where(lm_ok, mean, B.nan)
+    out["L2"] = B.where(lm_ok, l2, B.nan)
+    out["L3"] = B.where(lm_ok, l3, B.nan)
     out["L4"] = B.where(lm_ok, l4, B.nan)
     out["Lskew"] = B.where(ratio_ok, l3 / l2, B.nan)
     out["Lkurt"] = B.where(ratio_ok, l4 / l2, B.nan)
+    out["Lcoefvar"] = B.where(lm_ok, l2 / mean, B.nan)
 
     # leaf area density: lidRmetrics::metrics_lad (n > 2) -> lidR::LAD(dz = 1, k = 0.5, z0 = 2)
     # -> gap_fraction_profile: hist(z, breaks = c(-Inf, seq(z0, top, 1))) with R's boundary fuzz
@@ -240,43 +365,69 @@ def area_metrics(B, cell, z, rn, nr, vx, vy, ncell, zmin=ZMIN, bw=2.0, above=30.
     cnt = _rsum(B, B.astype(fin, B.f))
     lad0 = B.nan_to_num(lad, nan=0.0)
     with np.errstate(all="ignore"):
-        lmean = _rsum(B, lad0) / cnt
+        lsum = _rsum(B, lad0)
+        lmean = lsum / cnt
         lvar = _rsum(B, B.where(fin, (lad0 - lmean[:, None]) ** 2, 0.0)) / (cnt - 1)
-    # max(lad, na.rm = TRUE) is -Inf when every layer is NA; mean is NaN; sd needs two values
+    # min / max(lad, na.rm = TRUE) are Inf / -Inf when every layer is NA; mean is NaN; sd needs two values
+    out["lad_min"] = B.where(lad_ok, B.where(cnt > 0, B.amin(B.where(fin, lad, B.inf), 1), B.inf), B.nan)
     out["lad_max"] = B.where(lad_ok, B.where(cnt > 0, B.amax(B.where(fin, lad, -B.inf), 1), -B.inf), B.nan)
     out["lad_mean"] = B.where(lad_ok & (cnt > 0), lmean, B.nan)
     out["lad_cv"] = B.where(lad_ok & (cnt > 1), B.sqrt(lvar) / lmean, B.nan)
+    # sum(lad, na.rm = TRUE) is 0 when LAD() returns no layer (n > 2 but z0 >= zmax), the others are NA
+    out["lad_sum"] = B.where(lad_ok, lsum, B.where(has & (nf > 2), 0.0, B.nan))
 
-    # echoes
-    # metrics_echo keeps ReturnNumber > 0, NumberOfReturns > 0 and ReturnNumber <= NumberOfReturns
+    # metrics_echo: keeps ReturnNumber > 0, NumberOfReturns > 0 and ReturnNumber <= NumberOfReturns
     ok_r = (rns > 0) & (nrs > 0) & (rns <= nrs)
-    n_ok = B.segsum(B.astype(ok_r, B.f), start, n)
-    n_first = B.segsum(B.astype(ok_r & (rns == 1), B.f), start, n)
-    n_last = B.segsum(B.astype(ok_r & (rns == nrs) & (rns > 1), B.f), start, n)
-    n_single = B.segsum(B.astype(ok_r & (nrs == 1), B.f), start, n)
-    with np.errstate(all="ignore"):
-        out["p_single"] = B.where(has, n_single / n_ok * 100, B.nan)
-        out["p_last"] = B.where(has, n_last / n_ok * 100, B.nan)
-    out["ratio_last_first"] = B.where(n_first > 0, n_last / n_first, B.nan)
 
-    out["kde_peaks_count"] = kde
+    def count(mask):
+        return B.segsum(B.astype(mask, B.f), start, n)
+
+    n_ok = count(ok_r)
+    cnts = {"n_first": count(ok_r & (rns == 1)), "n_intermediate": count(ok_r & (rns > 1) & (rns < nrs)),
+            "n_last": count(ok_r & (rns == nrs) & (rns > 1)), "n_single": count(ok_r & (nrs == 1)),
+            "n_multiple": count(ok_r & (nrs > 1))}
+    with np.errstate(all="ignore"):
+        for k, v in cnts.items():
+            out[k] = B.where(has, v, B.nan)
+        for k, nm in (("first", "p_first"), ("intermediate", "p_intermidiate"), ("last", "p_last"),
+                      ("single", "p_single"), ("multiple", "p_multiple")):
+            out[nm] = B.where(has, cnts["n_" + k] / n_ok * 100, B.nan)
+        out["ratio_last_first"] = B.where(cnts["n_first"] > 0, cnts["n_last"] / cnts["n_first"], B.nan)
+        out["ratio_intermediate_first"] = B.where(cnts["n_first"] > 0, cnts["n_intermediate"] / cnts["n_first"],
+                                                  B.nan)
+        out["ratio_multiple_single"] = B.where(cnts["n_single"] > 0, cnts["n_multiple"] / cnts["n_single"], B.nan)
+    # metrics_echo2: as.data.frame(table(ReturnNumber)) and then as.numeric() of the factor, which gives the
+    # level codes 1, 2, ... of the return numbers present, not the numbers: n_return_k is the count of the k-th
+    # smallest return number present (the count of ReturnNumber == k only when 1..k are all present, as usual);
+    # merged with KeepReturns = 1:4 -> NA beyond the number of distinct return numbers
+    RMAX = int(B.item(B.amax(rns))) + 1
+    tab = B.astype(B.bincount(B.astype(cell, B.i64) * RMAX + B.astype(rns, B.i64), minlength=ncell * RMAX)
+                   .reshape(ncell, RMAX), B.f)
+    present = tab > 0
+    rank = B.cumsum(B.astype(present, B.i64), 1)                 # level code of each present return number
+    for k in range(1, 5):
+        sel = present & (rank == k)
+        out[f"n_return_{k}"] = B.where(B.sum(B.astype(sel, B.i64), 1) > 0, B.sum(B.where(sel, tab, 0.0), 1), B.nan)
+
+    for name, v in zip(KDE_NAMES, kde):
+        out[name] = v
     out.update(vox)
     out["n"] = B.where(has, nf, B.nan)
-    out["pz_above_30"] = B.where(has, out["pz_above_30"], 0.0)
     res = {k: B.to_numpy(v).astype(np.float64) for k, v in out.items()}
     res["enl"] = enl
     return res
 
 
 def _kde_peaks(B, cell, z, ncell, bw, chunk=8_000_000):
-    """kde_peaks_count per cell with the bit-exact port of R's density() (rdensity.py) on the host.
-    cell, z: the points above zmin in file order. Cells are sent to the host in chunks of ~chunk points."""
-    from .rdensity import kde_peaks_count
+    """metrics_kde per cell (count, elevations, values and differences of up to 4 peaks) with the bit-exact
+    port of R's density() (rdensity.py) on the host. cell, z: the points above zmin in file order.
+    Cells are sent to the host in chunks of ~chunk points. Returns a list of 12 arrays (KDE_NAMES)."""
+    from .rdensity import kde_peaks
     npts = int(cell.shape[0])
     o = B.lexsort([B.arange(npts, dtype=B.i64), cell])          # by cell, file order kept within a cell
     n = B.to_numpy(B.bincount(cell, minlength=ncell)).astype(np.int64)
     start = np.concatenate([[0], np.cumsum(n)[:-1]])
-    out = np.full(ncell, np.nan)
+    out = np.full((ncell, len(KDE_NAMES)), np.nan)
     c0 = 0
     while c0 < ncell:
         c1 = c0 + 1
@@ -284,9 +435,9 @@ def _kde_peaks(B, cell, z, ncell, bw, chunk=8_000_000):
             c1 += 1
         a, b = int(start[c0]), int(start[c1 - 1] + n[c1 - 1])
         zc = B.to_numpy(z[o[a:b]]).astype(np.float64)
-        out[c0:c1] = kde_peaks_count(zc, start[c0:c1] - a, n[c0:c1], bw)
+        out[c0:c1] = kde_peaks(zc, start[c0:c1] - a, n[c0:c1], bw)
         c0 = c1
-    return B.asarray(out)
+    return [B.asarray(out[:, k].copy()) for k in range(out.shape[1])]
 
 
 # ---------------------------------------------------------------- rumple

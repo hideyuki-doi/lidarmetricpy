@@ -30,20 +30,20 @@ from dataclasses import dataclass, replace
 import numpy as np
 import pandas as pd
 
-from .area import AREA_COLUMNS, area_metrics, rumple_cells, rumple_pixels, rumple_select
+from .area import SET3_COLUMNS, area_metrics, rumple_cells, rumple_pixels, rumple_select
 from .extra import EXTRA_COLUMNS, GAP_COLUMNS, extra_metrics, gap_metrics
 from .backend import get_backend
 from .trees import TREE_COLUMNS, CanopyAccumulator, CanopyLayout, local_maxima, tree_metrics
 
 BYTES_PER_POINT = {64: 420, 32: 260}      # device working set per point (measured on 6–90 M point blocks, + margin)
-HOST_BYTES_PER_POINT = 23                  # raw points kept on the host (X, Y, Z int32, returns, order, mask)
+HOST_BYTES_PER_POINT = 27                  # raw points kept on the host (X, Y, Z int32, returns, intensity, order, mask)
 # device path (whole tile prepared on the GPU), measured as CuPy pool peaks on a 90.5 M point tile:
-DEVICE_PREP_BYTES = 36                     # per point while reading / filtering (x, y, z, returns, order, masks)
+DEVICE_PREP_BYTES = 40                     # per point while reading / filtering (x, y, z, returns, order, intensity, masks)
 DEVICE_CHUNK_BYTES = 100                   # per point of one read / filter slice (opt.chunk_points), incl. pool slack
-DEVICE_KEEP_BYTES = 40                     # per point kept during the blocks (the above + cell row / column int32)
+DEVICE_KEEP_BYTES = 44                     # per point kept during the blocks (the above + cell row / column int32)
 DEVICE_SLACK = 0.5 * 1024 ** 3             # memory-pool fragmentation and per-block arrays (measured 0.3–0.4 GiB)
 HOST_BLOCK_BYTES = 170                     # host working set per point of the block being processed
-HOST_READ_BYTES = 64                       # per point of one LAZ read chunk (decoded record + coordinates)
+HOST_READ_BYTES = 68                       # per point of one LAZ read chunk (decoded record + coordinates)
 MIN_BUDGET_GB = 1 / 128                    # 8 MiB: smaller budgets are refused
 MIN_BLOCK_POINTS = 1000
 
@@ -149,17 +149,19 @@ def _read(source, grid, opt, rows_keep=None):
             y = Y * scale[1] + offset[1]
             rn = np.asarray(ch.return_number).astype(np.uint8)
             nr = np.asarray(ch.number_of_returns).astype(np.uint8)
+            it = np.asarray(ch.intensity).astype(np.int32)
         else:
             x, y = np.asarray(ch["x"], np.float64), np.asarray(ch["y"], np.float64)
             X, Y, Z = x, y, np.asarray(ch["z"], np.float64)
             rn = np.asarray(ch.get("return_number", np.ones(len(x))), np.uint8)
             nr = np.asarray(ch.get("number_of_returns", np.ones(len(x))), np.uint8)
+            it = np.asarray(ch.get("intensity", np.ones(len(x))), np.int32)
         order = np.arange(base, base + len(x), dtype=np.int64)
         base += len(x)
         k = _in_grid(x, y, grid, opt.closed_edges)
         row = np.floor((grid.y1 - y[k]) / grid.cell).astype(np.int64)
         row = np.clip(row, 0, grid.nrow - 1)
-        arr = {"X": X[k], "Y": Y[k], "Z": Z[k], "rn": rn[k], "nr": nr[k], "order": order[k]}
+        arr = {"X": X[k], "Y": Y[k], "Z": Z[k], "rn": rn[k], "nr": nr[k], "it": it[k], "order": order[k]}
         if rows_keep is not None:
             m = (row >= rows_keep[0]) & (row < rows_keep[1])
             row = row[m]
@@ -418,7 +420,7 @@ def _compute_tile(source, x0, y1, ncol, nrow, cell, dtm, B, gpu_memory_gb, cpu_m
                     colc = np.minimum(np.floor((x - grid.x0) / cell).astype(np.int64), ncol - 1)
                     ok = ok & (colc >= c0) & (colc < c1)
                 xs.append(x[ok]); ys.append(y[ok]); zs.append(z[ok])
-                Ps.append({k: v[ok] for k, v in P.items() if k in ("rn", "nr", "order")})
+                Ps.append({k: v[ok] for k, v in P.items() if k in ("rn", "nr", "it", "order")})
             if not xs or sum(len(v) for v in zs) == 0:
                 continue
             x, y, z = np.concatenate(xs), np.concatenate(ys), np.concatenate(zs)
@@ -507,7 +509,7 @@ def _block(B, grid, opt, x, y, z, P, r0, r1, c0, c1, T=None, acc=None):
     """Area metrics (and canopy accumulation) for a block of cells, from host arrays."""
     if _fbits(B) == 64:
         return _block_dev(B, grid, opt, B.asarray(x), B.asarray(y), B.asarray(z), B.asarray(P["rn"]),
-                          B.asarray(P["nr"]), B.asarray(P["order"]), r0, r1, c0, c1, T, acc)
+                          B.asarray(P["nr"]), B.asarray(P["order"]), r0, r1, c0, c1, T, acc, B.asarray(P["it"]))
     # float32 devices: integer indices in float64 on the host
     cell = grid.cell
     nr_, nc_ = r1 - r0, c1 - c0
@@ -527,7 +529,7 @@ def _block(B, grid, opt, x, y, z, P, r0, r1, c0, c1, T=None, acc=None):
     zd = B.asarray(z)
     rn = B.astype(B.asarray(P["rn"]), i64)
     nr = B.astype(B.asarray(P["nr"]), i64)
-    m = area_metrics(B, cid, zd, rn, nr, vx, vy, ncell, zmin=opt.zmin, bw=opt.kde_bw)
+    m = area_metrics(B, cid, zd, rn, nr, vx, vy, ncell, zmin=opt.zmin, bw=opt.kde_bw, it=B.asarray(P["it"]))
     del vx, vy, rn, nr
     if opt.other_packages:
         m.update(extra_metrics(B, cid, zd, ncell))
@@ -554,7 +556,7 @@ def _cells_frame(grid, m, r0, r1, c0, c1):
 
 def output_columns(opt):
     """Columns of compute_tile's table for these options (fixed, whatever the data)."""
-    cols = ["x", "y", "n_points", "n"] + list(AREA_COLUMNS) + ["rumple"]
+    cols = ["x", "y", "n_points"] + list(SET3_COLUMNS) + ["enl"]
     if opt.other_packages:
         cols += list(EXTRA_COLUMNS)
     if opt.trees:
@@ -564,7 +566,7 @@ def output_columns(opt):
     return cols
 
 
-def _block_dev(B, grid, opt, xd, yd, zd, rnd, nrd, ordd, r0, r1, c0, c1, T=None, acc=None):
+def _block_dev(B, grid, opt, xd, yd, zd, rnd, nrd, ordd, r0, r1, c0, c1, T=None, acc=None, itd=None):
     """Area metrics for a block of cells with all point arrays already on a float64 device.
     Indices are computed with the same IEEE operations as on the host (no fused multiply-add)."""
     cell = grid.cell
@@ -581,7 +583,7 @@ def _block_dev(B, grid, opt, xd, yd, zd, rnd, nrd, ordd, r0, r1, c0, c1, T=None,
     vy = B.astype(B.round_away(yd), i64) - by0
     pid = rumple_pixels(B, cid, xd, yd, ncell)              # (cell, 1 m pixel) ids of highest(1)
     m = area_metrics(B, cid, zd, B.astype(rnd, i64), B.astype(nrd, i64), vx, vy, ncell,
-                     zmin=opt.zmin, bw=opt.kde_bw)
+                     zmin=opt.zmin, bw=opt.kde_bw, it=itd)
     del vx, vy
     if opt.other_packages:
         m.update(extra_metrics(B, cid, zd, ncell))
@@ -676,7 +678,8 @@ def _device_tile(source, grid, opt, B, dtm_a, T, block_pts, read_points=None):
         src = dict(x=np.asarray(source["x"], np.float64), y=np.asarray(source["y"], np.float64),
                    z=np.asarray(source["z"], np.float64),
                    rn=np.asarray(source.get("return_number", np.ones(n0)), np.uint8),
-                   nr=np.asarray(source.get("number_of_returns", np.ones(n0)), np.uint8))
+                   nr=np.asarray(source.get("number_of_returns", np.ones(n0)), np.uint8),
+                   it=np.asarray(source.get("intensity", np.ones(n0)), np.int32))
         chunks = ({kk: v[s0:s0 + step] for kk, v in src.items()} for s0 in range(0, n0, step))
         scale = None
     else:
@@ -687,7 +690,7 @@ def _device_tile(source, grid, opt, B, dtm_a, T, block_pts, read_points=None):
     # whole tile is never held twice (no concatenate, no tuple of filtered copies). Values and order are
     # the same as filtering every array with the same mask at once.
     cap = n0 if scale is None else int(f.header.point_count)
-    P = None                                                  # x, y, z, return number, number of returns, order
+    P = None                                        # x, y, z, return number, number of returns, order, intensity
     pos = base = 0
     for ch in chunks:
         if scale is None:
@@ -707,7 +710,7 @@ def _device_tile(source, grid, opt, B, dtm_a, T, block_pts, read_points=None):
             P[i][pos:pos + m] = v[k]
 
         if P is None:
-            P = [None] * 6
+            P = [None] * 7
         put(0, x)
         del x
         put(1, y)
@@ -716,10 +719,12 @@ def _device_tile(source, grid, opt, B, dtm_a, T, block_pts, read_points=None):
             put(2, B.asarray(ch["z"]))
             put(3, B.asarray(ch["rn"]))
             put(4, B.asarray(ch["nr"]))
+            put(6, B.asarray(ch["it"]))
         else:
             put(2, (B.astype(B.asarray(np.ascontiguousarray(ch.Z)), B.f) * float(scale[2])) + float(offset[2]))
             put(3, B.asarray(np.ascontiguousarray(ch.return_number).astype(np.uint8)))
             put(4, B.asarray(np.ascontiguousarray(ch.number_of_returns).astype(np.uint8)))
+            put(6, B.asarray(np.ascontiguousarray(ch.intensity).astype(np.int32)))
         put(5, B.arange(base, base + n, dtype=B.i32))            # file order (ties), int32 saves memory
         base += n
         pos += m
@@ -753,7 +758,7 @@ def _device_tile(source, grid, opt, B, dtm_a, T, block_pts, read_points=None):
     if opt.spike_filter and int(P[2].shape[0]):
         _spike_filter_dev(B, grid, opt, P)
     B.free()
-    x, y, z, rn, nr, order = P
+    x, y, z, rn, nr, order, it = P
     del P
     T["prepare"] += time.time() - t
     npts = int(z.shape[0])
@@ -765,7 +770,7 @@ def _device_tile(source, grid, opt, B, dtm_a, T, block_pts, read_points=None):
         acc = CanopyAccumulator(B, CanopyLayout(*bbox))
     t = time.time()
     if npts <= block_pts:
-        frames = [_block_dev(B, grid, opt, x, y, z, rn, nr, order, 0, grid.nrow, 0, grid.ncol, T, acc)]
+        frames = [_block_dev(B, grid, opt, x, y, z, rn, nr, order, 0, grid.nrow, 0, grid.ncol, T, acc, it)]
     else:
         # the prepared points stay on the device; the heavy work runs on blocks of cell rows
         row, col = B.zeros(npts, dtype=B.i32), B.zeros(npts, dtype=B.i32)   # int32: kept for all blocks
@@ -787,7 +792,8 @@ def _device_tile(source, grid, opt, B, dtm_a, T, block_pts, read_points=None):
             m = (row >= r0) & (row < r1) & (col >= c0) & (col < c1)
             if not bool(B.item(B.sum(B.astype(m, B.i64)) > 0)):
                 continue
-            frames.append(_block_dev(B, grid, opt, x[m], y[m], z[m], rn[m], nr[m], order[m], r0, r1, c0, c1, T, acc))
+            frames.append(_block_dev(B, grid, opt, x[m], y[m], z[m], rn[m], nr[m], order[m], r0, r1, c0, c1, T, acc,
+                                     it[m]))
             del m
             B.free()
     T["area"] += time.time() - t
