@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.0 (2026-11-10)
+
+First stable release; the metric code is that of 0.4.0 (all 111 metrics_set3 outputs, float32 exact mode).
+
+- examples/quickstart.py: out-of-the-box example on the synthetic tile of the tests (CPU, about a minute)
+- continuous integration (GitHub Actions): the test suite and the example on CPU for Python 3.10 and 3.12
+- CITATION.cff and .zenodo.json for the Zenodo DOI of each release
+- 0.4.0 timings on an idle machine and the memory-budget figures in README / docs
+
 ## 0.4.0 (2026-11-08)
 
 All 111 outputs of `lidRmetrics::metrics_set3` instead of 24, each equal to lidRmetrics 0.1.5 on every float64

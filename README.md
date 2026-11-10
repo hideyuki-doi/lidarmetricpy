@@ -26,6 +26,12 @@ the cell; `n` counts those above `zmin` and is NA when there is none, as in lidR
 `compute_tiles(jobs, workers="auto", gpu_memory_gb=80, cpu_memory_gb=200)` runs many tiles in parallel
 processes that share one GPU; the budgets are totals, split equally between the workers.
 
+## Quick start
+
+```bash
+python examples/quickstart.py          # metrics of the synthetic test tile on a 10 m grid → examples/quickstart.png
+```
+
 ## Install
 
 ```bash
@@ -241,3 +247,8 @@ GPL-3.0-or-later (LICENSE): the tree detection, Dalponte segmentation, knnidw an
 of lidR (GPL-3, Jean-Romain Roussel). Metric definitions follow lidRmetrics (Tompalski et al.), leafR
 (Almeida et al. 2019), PyForestScan (JOSS 2025), forestr (Atkins et al. 2018), ForestGapR
 (Silva et al. 2019) and canopyLazR (Kamoske et al. 2019); see docs/paper_notes.md §9 for references.
+
+## Citing
+
+See CITATION.cff; each GitHub release is archived at Zenodo with its own DOI.
+

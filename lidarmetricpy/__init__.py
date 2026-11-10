@@ -3,4 +3,4 @@ from .api import Grid, Options, compute_tile, compute_tiles, plan_blocks  # noqa
 from .backend import get_backend  # noqa: F401
 from .canopylazr import canopylazr, canopylazr_file  # noqa: F401
 
-__version__ = "0.4.0"
+__version__ = "1.0.0"

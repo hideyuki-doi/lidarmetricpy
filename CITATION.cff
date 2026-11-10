@@ -1,0 +1,13 @@
+cff-version: 1.2.0
+message: "If you use lidarmetricpy, please cite it as below."
+title: "lidarmetricpy: forest-structure metrics from LiDAR at landscape scale"
+type: software
+authors:
+  - family-names: Doi
+    given-names: Hideyuki
+    affiliation: "Graduate School of Informatics, Kyoto University"
+version: 1.0.0
+date-released: 2026-11-10
+license: GPL-3.0-or-later
+repository-code: "https://github.com/hideyuki-doi/lidarmetricpy"
+keywords: [lidar, forest structure, point cloud, lidR, lidRmetrics, GPU]
