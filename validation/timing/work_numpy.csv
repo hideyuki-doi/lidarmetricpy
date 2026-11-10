@@ -1,0 +1,3 @@
+mesh,points,backend,seconds_median,seconds_all,columns,stages_last
+09LC9423,90497852,numpy,99.19998908042908,99.31 99.20 99.15,124,"{""read"": 5.06, ""prepare"": 1.94, ""area"": 89.33, ""canopy"": 12.83, ""trees"": 2.77, ""rumple"": 0.99}"
+09MC0523,48280215,numpy,58.552549839019775,58.55 58.03 58.67,124,"{""read"": 2.7, ""prepare"": 0.99, ""area"": 52.45, ""canopy"": 6.83, ""trees"": 2.52, ""rumple"": 1.2}"

@@ -217,8 +217,11 @@ same on both sides (validation/run_timing_lidr.sh, run_timing_py.sh, backend_com
 | lidR + lidRmetrics, 24 metrics (R, 1 core) | 165.7 / 133.9 | 205.3 / 156.2 | – | 9.6 / 5.3 |
 | lidR + lidRmetrics, metrics_set3 (R, 1 core) | 174.9 / 140.8 | 214.6 / 163.3 | – | 9.6 / 5.3 |
 
-(Measured with 0.3.2, 24 metrics; 0.4.0 computes all 111 and is being re-timed: on a shared machine CuPy took
-6.9 s and NumPy 96 s for the 90.5 M tile against 174.9 s for lidR's metrics_set3.) For the same 24 metrics, CuPy is ~30 times faster than lidR in either interval (work 165.7 / 5.5 s, whole
+**0.4.0 (all 111 metrics_set3 outputs + trees, idle machine, validation/time_work.py → timing/work_*.csv):**
+CuPy 6.0 / 5.9 / 5.8 s for the 90.5 M point tile with GPU budgets of 16 / 32 / 96 GiB (3.9 s for 48.3 M), NumPy
+99.2 s (58.6 s), against 174.9 s (140.8 s) for lidR's metrics_set3: CuPy is 30 times faster, NumPy 1.8 times.
+12 CuPy workers: 1.58 s per tile. float32 (torch-cuda32) 84.9 s with the default `float32_exact=True`, 19.8 s
+with `False`. The table above is from 0.3.2 (24 metrics). For the same 24 metrics, CuPy is ~30 times faster than lidR in either interval (work 165.7 / 5.5 s, whole
 process 205.3 / 6.9 s), NumPy 3–4 times (165.7 / 53.4 s, 205.3 / 54.4 s).
 
 | many tiles | seconds per tile |
