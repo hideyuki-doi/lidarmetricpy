@@ -133,7 +133,7 @@ def fig_workflow():
     ox, ow = 82.4, 17.0
     ax.add_patch(FancyBboxPatch((ox, yg - hb / 2), ow, yc - yg + hb, boxstyle="round,pad=0,rounding_size=1",
                                 fc="white", ec=INK, lw=1.2, zorder=2))
-    ax.text(ox + ow / 2, (yc + yg) / 2, "per-cell table\n\nlidRmetrics (24)\nlidR trees (9)\nleafR (10)\n"
+    ax.text(ox + ow / 2, (yc + yg) / 2, "per-cell table\n\nlidRmetrics (111)\nlidR trees (9)\nleafR (10)\n"
             "PyForestScan (3)\nforestr ENL (1)\nForestGapR (3)", ha="center", va="center", fontsize=5.9,
             linespacing=1.3, zorder=3)
     arrow(bot(c1), top(g1))
@@ -311,6 +311,8 @@ def fig_throughput(thr):
     nudge = {"torch-cuda": 1.12, "cupy": 0.9}
     for b in ["cupy", "torch-cuda", "torch-cuda32", "numpy", "torch-cpu"]:
         t = thr[thr.backend == b].sort_values("workers")
+        if t.empty:
+            continue
         ax.plot(t.workers, t.s_per_tile, "-o", color=BCOL[b], lw=1.6, ms=3.5)
         ax.text(t.workers.iloc[-1] * 1.08, t.s_per_tile.iloc[-1] * nudge.get(b, 1), f"{lab[b]} {t.s_per_tile.iloc[-1]:.2f} s",
                 fontsize=6, va="center")
@@ -319,7 +321,7 @@ def fig_throughput(thr):
     ax.set_xscale("log", base=2)
     ax.set_yscale("log")
     ax.set_xticks([1, 2, 4, 8, 16], ["1", "2", "4", "8", "16"])
-    ax.set_yticks([1, 2, 5, 10, 20, 40], ["1", "2", "5", "10", "20", "40"])
+    ax.set_yticks([1, 2, 5, 10, 20, 40, 80], ["1", "2", "5", "10", "20", "40", "80"])
     ax.minorticks_off()
     ax.set_xlim(0.8, 90)
     ax.set_xlabel("parallel worker processes")

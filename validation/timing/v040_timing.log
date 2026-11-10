@@ -1,0 +1,32 @@
+22:14:23 gpu 100% 93819MiB load 5.00 ok=0
+22:15:23 gpu 99% 94503MiB load 9.67 ok=0
+22:16:23 gpu 100% 93819MiB load 8.57 ok=0
+22:17:23 gpu 100% 93839MiB load 10.50 ok=0
+22:18:23 gpu 100% 94019MiB load 11.91 ok=0
+22:19:23 gpu 100% 94019MiB load 14.91 ok=0
+22:20:23 gpu 98% 94019MiB load 8.71 ok=0
+22:21:23 gpu 0% 94019MiB load 8.16 ok=0
+22:22:23 gpu 100% 94019MiB load 8.94 ok=0
+22:23:23 gpu 100% 94059MiB load 5.96 ok=0
+22:24:23 gpu 100% 94109MiB load 9.43 ok=0
+22:25:23 gpu 100% 94109MiB load 6.33 ok=0
+22:26:23 gpu 100% 94109MiB load 11.65 ok=0
+22:27:23 gpu 100% 94129MiB load 9.62 ok=0
+22:28:23 gpu 100% 94129MiB load 6.58 ok=0
+22:29:23 gpu 100% 94129MiB load 9.34 ok=0
+22:30:23 gpu 100% 94129MiB load 9.93 ok=0
+22:31:23 gpu 100% 94129MiB load 10.61 ok=0
+22:32:23 gpu 100% 94129MiB load 7.47 ok=0
+22:33:23 gpu 100% 94129MiB load 9.46 ok=0
+22:34:23 gpu 100% 8747MiB load 5.11 ok=0
+22:35:23 gpu 100% 8747MiB load 3.52 ok=0
+22:36:23 gpu 0% 15MiB load 1.36 ok=1
+22:37:23 gpu 0% 15MiB load 0.57 ok=2
+22:38:23 gpu 0% 15MiB load 0.35 ok=3
+quiet: Sun Nov  8 22:39:23 JST 2026
+{'mesh': '09LC9423', 'points': 90497852, 'backend': 'cupy', 'seconds_median': 21.297675848007202, 'seconds_all': '19.94 21.30 21.37', 'columns': 124, 'stages_last': '{"read": 4.99, "prepare": 1.73, "area": 12.9, "canopy": 3.0, "trees": 1.68, "rumple": 1.16}'}
+{'mesh': '09MC0523', 'points': 48280215, 'backend': 'cupy', 'seconds_median': 14.982971906661987, 'seconds_all': '24.63 14.40 14.98', 'columns': 124, 'stages_last': '{"read": 2.47, "prepare": 1.07, "area": 9.85, "canopy": 2.61, "trees": 1.53, "rumple": 1.02}'}
+{'mesh': '09LC9423', 'points': 90497852, 'backend': 'numpy', 'seconds_median': 99.19998908042908, 'seconds_all': '99.31 99.20 99.15', 'columns': 124, 'stages_last': '{"read": 5.06, "prepare": 1.94, "area": 89.33, "canopy": 12.83, "trees": 2.77, "rumple": 0.99}'}
+{'mesh': '09MC0523', 'points': 48280215, 'backend': 'numpy', 'seconds_median': 58.552549839019775, 'seconds_all': '58.55 58.03 58.67', 'columns': 124, 'stages_last': '{"read": 2.7, "prepare": 0.99, "area": 52.45, "canopy": 6.83, "trees": 2.52, "rumple": 1.2}'}
+ALLDONE
+TIMING_DONE Sun Nov 8 22:56:23 JST 2026

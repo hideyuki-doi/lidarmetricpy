@@ -27,3 +27,6 @@ validation/ref_shizuoka/*.pfs.log
 validation/lasr/*.tif
 validation/lasr/*.gpkg
 validation/lasr/*_time.txt
+# outputs of examples/quickstart.py
+examples/quickstart.png
+examples/quickstart_cells.csv

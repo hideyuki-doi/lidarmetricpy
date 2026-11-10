@@ -174,9 +174,9 @@ tables give status "empty", not equal.
 
 ## Validation on real data (validation/, docs/)
 
-Kanagawa Prefecture 2024 airborne lidar (52–133 pts/m², up to 7 returns, JGD2011 Plane IX). The LAZ files are
-not redistributed here; validation/make_testdata.py, make_fulltile.py and make_rawclips.py rebuild the test
-clips from the original tiles (`PCM_LAZ_DIR`, `PCM_DEM_DIR`). The reference outputs of the R and Python
+Kanagawa Prefecture 2024 airborne lidar (52–133 pts/m², up to 7 returns, JGD2011 Plane IX; Kanagawa Prefecture,
+CC BY, https://www.geospatial.jp/ckan/dataset/kanagawa-2024-pointcloud). The LAZ files are not redistributed here;
+validation/make_testdata.py, make_fulltile.py and make_rawclips.py rebuild the test clips from the original tiles (`PCM_LAZ_DIR`, `PCM_DEM_DIR`). The reference outputs of the R and Python
 packages are included (validation/ref, validation/ref_full).
 
 Second data set: four whole tiles (400 m × 300 m) of the Shizuoka Prefecture airborne lidar (VIRTUAL SHIZUOKA,
@@ -226,16 +226,21 @@ same on both sides (validation/run_timing_lidr.sh, run_timing_py.sh, backend_com
 **0.4.0 (all 111 metrics_set3 outputs + trees, idle machine, validation/time_work.py → timing/work_*.csv):**
 CuPy 6.0 / 5.9 / 5.8 s for the 90.5 M point tile with GPU budgets of 16 / 32 / 96 GiB (3.9 s for 48.3 M), NumPy
 99.2 s (58.6 s), against 174.9 s (140.8 s) for lidR's metrics_set3: CuPy is 30 times faster, NumPy 1.8 times.
-12 CuPy workers: 1.58 s per tile. float32 (torch-cuda32) 84.9 s with the default `float32_exact=True`, 19.8 s
+12 CuPy workers: 1.59 s per tile. float32 (torch-cuda32) 84.9 s with the default `float32_exact=True`, 19.8 s
 with `False`. The table above is from 0.3.2 (24 metrics). For the same 24 metrics, CuPy is ~30 times faster than lidR in either interval (work 165.7 / 5.5 s, whole
 process 205.3 / 6.9 s), NumPy 3–4 times (165.7 / 53.4 s, 205.3 / 54.4 s).
 
-| many tiles | seconds per tile |
-|---|---|
-| CuPy, 1 / 4 / 12 workers | 4.59 / 1.72 / 1.44 |
-| PyTorch CUDA, 12 workers | 1.53 |
-| NumPy, 1 / 4 / 8 / 16 workers | 41.8 / 18.5 / 14.6 / 10.4 |
-| lidR (metrics_set3, R 4.4.3), 8 R processes | 30.5 |
+| many tiles (the two full tiles in turn) | seconds per tile, 0.4.0 (111 metrics) | 0.3.2 (24 metrics) |
+|---|---|---|
+| CuPy, 1 / 4 / 12 workers | 4.96 / 1.89 / 1.59 | 4.59 / 1.72 / 1.44 |
+| PyTorch CUDA, 12 workers | – | 1.53 |
+| NumPy, 1 / 4 / 8 / 16 workers | 73.2 / 29.5 / 21.5 / 13.9 | 41.8 / 18.5 / 14.6 / 10.4 |
+| lidR (metrics_set3, R 4.4.3), 8 R processes | 30.5 | 30.5 |
+
+Memory budgets (0.4.0, 90.5 M point tile, docs/data/memory_budget.csv): with a 16 GiB GPU budget the peak GPU
+memory pool is 11.6 GiB and the whole tile stays on the device (6.1 s); 5 GiB still runs on the device (7.7 s);
+4 GiB and below bin the points in main memory and send them block by block (10.8 s). Values are identical for
+every budget.
 
 lidR on all cores was not measured. On the GPU path the GPU work is ~1 s per dense tile; the rest is CPU
 work (LAZ decoding alone costs 23 CPU-seconds per dense tile and is the floor for throughput; the exact
