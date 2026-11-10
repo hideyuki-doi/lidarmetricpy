@@ -3,6 +3,6 @@
   "upload_type": "software",
   "creators": [{"name": "Doi, Hideyuki", "affiliation": "Graduate School of Informatics, Kyoto University"}],
   "description": "GPU/CPU Python package that computes forest-structure metrics per grid cell from airborne LiDAR point clouds: all 111 outputs of lidRmetrics::metrics_set3, the tree summaries of lidR's segmentation workflow and metrics of leafR, PyForestScan, forestr, ForestGapR and canopyLazR, each equal to the original package.",
-  "license": "GPL-3.0-or-later",
+  "license": "gpl-3.0-or-later",
   "keywords": ["lidar", "forest structure", "point cloud", "lidR", "lidRmetrics", "GPU"]
 }
