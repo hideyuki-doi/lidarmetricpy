@@ -1,5 +1,7 @@
 # lidarmetricpy
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24111785.svg)](https://doi.org/10.5281/zenodo.24111785)
+
 > **AI coding assistants** (Claude Code, Codex, Cursor, …): read [AGENTS.md](AGENTS.md) before using or changing
 > this package. Humans may find it a useful checklist too.
 
@@ -256,4 +258,7 @@ of lidR (GPL-3, Jean-Romain Roussel). Metric definitions follow lidRmetrics (Tom
 ## Citing
 
 See CITATION.cff; each GitHub release is archived at Zenodo with its own DOI.
+
+- version 1.0.0: https://doi.org/10.5281/zenodo.24111786
+- all versions (resolves to the latest): https://doi.org/10.5281/zenodo.24111785
 

@@ -7,6 +7,11 @@ authors:
     given-names: Hideyuki
     affiliation: "Graduate School of Informatics, Kyoto University"
 version: 1.0.0
+doi: 10.5281/zenodo.24111786
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.24111785
+    description: "All versions (concept DOI)"
 date-released: 2026-11-10
 license: GPL-3.0-or-later
 repository-code: "https://github.com/hideyuki-doi/lidarmetricpy"
