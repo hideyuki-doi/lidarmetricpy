@@ -30,3 +30,6 @@ validation/lasr/*_time.txt
 # outputs of examples/quickstart.py
 examples/quickstart.png
 examples/quickstart_cells.csv
+validation/ref_thin/*.tif
+validation/ref_thin/*.other.log
+validation/ref_thin/*.pfs.log

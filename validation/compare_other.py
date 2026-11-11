@@ -1,6 +1,6 @@
 """Compare lidarmetricpy with leafR / forestr / ForestGapR (ref/<mesh>_other.csv) and PyForestScan (ref/<mesh>_pfs.csv).
 
-    python compare_other.py [--full | --set shizuoka] [backend ...]   → compare_other_<backend>[_full|_shizuoka].csv
+    python compare_other.py [--full | --set shizuoka|thin] [backend ...]   → compare_other_<backend>[_full|_shizuoka].csv
 """
 import json
 import sys
@@ -20,7 +20,7 @@ PFS = ["pfs_pai", "pfs_cover", "pfs_fhd"]
 
 
 SETS = {"clips": ("data/clips.json", "ref", ""), "full": ("data/full.json", "ref_full", "_full"),
-        "shizuoka": ("data/shizuoka.json", "ref_shizuoka", "_shizuoka")}
+        "shizuoka": ("data/shizuoka.json", "ref_shizuoka", "_shizuoka"), "thin": ("data/thin.json", "ref_thin", "_thin")}
 
 
 def run(backend, ds="clips"):

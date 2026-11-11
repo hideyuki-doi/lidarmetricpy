@@ -161,7 +161,7 @@ pytest            # ~20 s; GPU backends are skipped when their device cannot be 
   returns, a gap, an empty cell, points on cell edges) against the reference values of lidR, lidRmetrics,
   leafR, forestr, ForestGapR, PyForestScan and canopyLazR (tests/make_references.sh; versions in
   tests/data/ref/versions.txt).
-- tests/test_oracle.py: 17 single-cell edge cases (few points, equal heights, invalid returns, heights 1e-12
+- tests/test_oracle.py: 23 single-cell edge cases (few points, equal heights, invalid returns, heights 1e-12
   from a break, tall canopies, zmin = 2) against `metrics_set3` run in R (tests/make_oracle.R).
 - tests/test_regressions.py: cells computed together, alone or in blocks must agree (also for grids not aligned
   with whole metres and cells of 2.5 or 7.3 m); ground-only cells; DTM alignment and missing data; exact hull;

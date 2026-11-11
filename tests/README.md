@@ -5,7 +5,7 @@ pytest          # from the repository root
 ```
 
 - `test_reference.py`: every installed float64 backend (numpy, torch-cpu, cupy, torch-cuda) against the
-  reference values of lidR 4.3.3 + lidRmetrics 0.1.5 (33 metrics, tree tops, crown areas), leafR 0.3.5,
+  reference values of lidR 4.3.3 + lidRmetrics 0.1.5 (the 111 metrics of `metrics_set3`, tree tops, crown areas), leafR 0.3.5,
   forestr 2.0.2, ForestGapR 0.1.7, PyForestScan 0.3.6 and canopyLazR 2.0.
 - `test_budgets.py`: memory budgets, multi-pass reading, the device and host paths on the GPU, the old option
   names, empty grids and `compute_tiles` must not change any value.

@@ -1,6 +1,6 @@
 """Compare lidarmetricpy with the lidR/lidRmetrics reference on the clips.
 
-    python compare.py [--set shizuoka] [backend ...]      (default: cupy numpy torch-cuda torch-cpu)
+    python compare.py [--set shizuoka|full|thin] [backend ...]      (default: cupy numpy torch-cuda torch-cpu)
 Writes validation/compare_<backend>[_shizuoka].csv: per metric, cells compared, max |diff|,
 share of cells equal within 1e-6 (relative), and Spearman rho; plus tree-top matching.
 """
@@ -24,7 +24,7 @@ METRICS = list(SET3_COLUMNS) + ["tree_n", "tree_h_mean", "tree_h_sd", "tree_h_cv
                                 "tree_h_shannon", "crown_m2_mean", "crown_m2_sd"]
 # data set: manifest, reference folder, suffix of the output files
 SETS = {"clips": ("data/clips.json", "ref", ""), "shizuoka": ("data/shizuoka.json", "ref_shizuoka", "_shizuoka"),
-        "full": ("data/full.json", "ref_full", "_full")}
+        "full": ("data/full.json", "ref_full", "_full"), "thin": ("data/thin.json", "ref_thin", "_thin")}
 
 
 def run(backend, ds="clips"):

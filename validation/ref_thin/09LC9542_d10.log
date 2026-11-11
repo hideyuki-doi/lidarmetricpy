@@ -1,0 +1,8 @@
+proj_create: Open of /home/bi_rtx6000_guest/miniforge3/envs/lidr/share/proj failed
+proj_create: no database context specified
+There appears to be a problem with the PROJ installation
+                                                                                Registered S3 method overwritten by 'stars':
+  method                  from
+  st_interpolate_aw.stars sf  
+cells 100 trees 1349 read_s 0.4 area_s 13.6 tree_s 1.1
+21.42 s 625240 KB

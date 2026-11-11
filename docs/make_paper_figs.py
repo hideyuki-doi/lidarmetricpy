@@ -102,10 +102,10 @@ def fig_workflow():
     ax.set_ylim(0, 42)
     ax.axis("off")
     yc, yg, hb = 29, 9, 11
-    for lab, y, col in [("CPU (host)", yc, "#f3f2ee"), ("device: GPU (CuPy / PyTorch) or CPU (NumPy / PyTorch)", yg, "#e8f0fb")]:
+    for lab, y, col in [("CPU", yc, "#f3f2ee"), ("GPU (CuPy / PyTorch),\nor CPU (NumPy / PyTorch)", yg, "#e8f0fb")]:
         ax.add_patch(FancyBboxPatch((0.2, y - 7), 79.5, 14, boxstyle="round,pad=0,rounding_size=1.2",
                                     fc=col, ec="none", zorder=0))
-        ax.text(20.6, y + 8, lab, fontsize=6.5, color=INK2, va="bottom")
+        ax.text(20.6, y + 7.6, lab, fontsize=6.5, color=INK2, va="bottom", linespacing=1.15)
 
     def box(col, y, text, gpu=False, x=None, w=18.6):
         x = 1.0 + col * 19.6 if x is None else x
@@ -123,13 +123,13 @@ def fig_workflow():
     def top(b): return (b[0] + b[2] / 2, b[1] + hb / 2)
     def bot(b): return (b[0] + b[2] / 2, b[1] - hb / 2)
 
-    c1 = box(0, yc, "LAZ decoding\n(lazrs, parallel chunks;\nmulti-pass if host budget)")
-    g1 = box(0, yg, "X·scale + offset\n(no FMA), cell index", True)
-    g2 = box(1, yg, "height above DTM,\nz range, spike filter,\nsort by cell", True)
-    g3 = box(2, yg, "per-cell metrics:\nsegmented sums, KDE,\nvoxels, layer counts", True)
-    g4 = box(3, yg, "0.5 m canopy raster,\nlocal maxima\n(int64 atomics)", True)
-    c3 = box(2, yc, "rumple: Delaunay\n(qhull QbB Qt); leafR /\nPyForestScan formulas")
-    c4 = box(3, yc, "tree ties, Dalponte\ncrowns (numba), knnidw;\nForestGapR gaps")
+    c1 = box(0, yc, "LAZ decompression\n(parallel; file read again\nif main memory is limited)")
+    g1 = box(0, yg, "coordinates from integers\n(scale, offset), cell index", True)
+    g2 = box(1, yg, "height above DTM,\nheight range, filter of\nhigh outliers, sort by cell", True)
+    g3 = box(2, yg, "per-cell metrics: sums,\npercentiles, voxels,\nlayer counts", True)
+    g4 = box(3, yg, "0.5 m canopy raster,\nlocal maxima", True)
+    c3 = box(2, yc, "rumple (triangulation),\ndensity peaks, leafR /\nPyForestScan formulas")
+    c4 = box(3, yc, "ties between tree tops,\ncrown growing, filling of\ncanopy raster; gaps")
     ox, ow = 82.4, 17.0
     ax.add_patch(FancyBboxPatch((ox, yg - hb / 2), ow, yc - yg + hb, boxstyle="round,pad=0,rounding_size=1",
                                 fc="white", ec=INK, lw=1.2, zorder=2))
@@ -149,7 +149,7 @@ def fig_workflow():
     arrow(right(g4), (ox, yg))
     ax.plot([bot(g3)[0], bot(g3)[0], xm], [bot(g3)[1], 0.6, 0.6], color=INK2, lw=0.8, zorder=1)
     arrow((xm, 0.6), (xm, yg - hb / 2))
-    ax.text(1.0, 44, "with a memory budget the device stages run on blocks of cell rows",
+    ax.text(1.0, 44, "with a memory limit, the steps of the lower row run on blocks of whole rows of cells",
             fontsize=6.0, color=INK2, va="top", style="italic")
     save(fig, "fig1_workflow")
 
@@ -306,7 +306,7 @@ def fig_throughput(thr):
     txt = (VAL / "par" / "lidr_par.log").read_text()
     lsec = float(re.search(r"\): ([\d.]+) s", txt).group(1)) / 8
     fig, ax = plt.subplots(figsize=(3.5, 2.8))
-    lab = {"cupy": "CuPy", "torch-cuda": "PyTorch CUDA", "torch-cuda32": "float32 (MPS-like)", "numpy": "NumPy",
+    lab = {"cupy": "CuPy", "torch-cuda": "PyTorch CUDA", "torch-cuda32": "PyTorch CUDA, single precision", "numpy": "NumPy",
            "torch-cpu": "PyTorch CPU"}
     nudge = {"torch-cuda": 1.12, "cupy": 0.9}
     for b in ["cupy", "torch-cuda", "torch-cuda32", "numpy", "torch-cpu"]:
@@ -317,60 +317,57 @@ def fig_throughput(thr):
         ax.text(t.workers.iloc[-1] * 1.08, t.s_per_tile.iloc[-1] * nudge.get(b, 1), f"{lab[b]} {t.s_per_tile.iloc[-1]:.2f} s",
                 fontsize=6, va="center")
     ax.plot([8], [lsec], "s", color=BCOL["lidR"], ms=5)
-    ax.text(8 * 1.08, lsec, f"lidR, 8 processes {lsec:.1f} s", fontsize=6, va="center")
+    ax.text(8 * 1.08, lsec, f"  lidR, 8 processes {lsec:.1f} s", fontsize=6, va="center")
     ax.set_xscale("log", base=2)
     ax.set_yscale("log")
     ax.set_xticks([1, 2, 4, 8, 16], ["1", "2", "4", "8", "16"])
     ax.set_yticks([1, 2, 5, 10, 20, 40, 80], ["1", "2", "5", "10", "20", "40", "80"])
     ax.minorticks_off()
     ax.set_xlim(0.8, 90)
-    ax.set_xlabel("parallel worker processes")
-    ax.set_ylabel("seconds per tile")
+    ax.set_xlabel("Parallel worker processes")
+    ax.set_ylabel("Time per tile (s)")
     ax.grid(axis="y", color=GRID, lw=0.6)
-    ax.set_title("Throughput, full tiles (90.5 M and 48.3 M points)", loc="left", fontsize=7.5)
     save(fig, "fig5_throughput")
 
 
 # ------------------------------------------------------------------ figure 6: memory budgets
+PATHS = {"device": "whole tile on GPU", "host": "sent in blocks"}
+
+
 def fig_memory(mb):
     fig, axs = plt.subplots(1, 2, figsize=(7.1, 2.8), gridspec_kw={"width_ratios": [1.35, 1]})
     g = mb[mb.backend == "cupy"].copy()
     g["label"] = [("no limit" if pd.isna(r.gpu_memory_gb) else f"GPU {r.gpu_memory_gb:g} GiB")
-                  + ("" if pd.isna(r.cpu_memory_gb) else f", RAM {r.cpu_memory_gb:g} GiB") for r in g.itertuples()]
+                  + ("" if pd.isna(r.cpu_memory_gb) else f", main memory {r.cpu_memory_gb:g} GiB") for r in g.itertuples()]
     y = np.arange(len(g))
-    axs[0].barh(y - 0.2, g.peak_gpu_gb, 0.38, color=BCOL["cupy"], label="peak GPU memory pool (GiB)")
-    axs[0].barh(y + 0.2, g.peak_rss_gb, 0.38, color=BCOL["cupy"], alpha=0.4, label="peak process RAM (GiB)")
+    axs[0].barh(y - 0.2, g.peak_gpu_gb, 0.38, color=BCOL["cupy"], label="peak GPU memory (GiB)")
+    axs[0].barh(y + 0.2, g.peak_rss_gb, 0.38, color=BCOL["cupy"], alpha=0.4, label="peak main memory (GiB)")
     for i, r in enumerate(g.itertuples()):
         axs[0].text(np.nanmax([r.peak_gpu_gb, r.peak_rss_gb, r.gpu_memory_gb]) + 0.8, i,
-                    f"{r.seconds:.1f} s, {r.path}, {r.blocks} block{'s' if r.blocks > 1 else ''}"
-                    + ("" if r.passes == 1 else f", {r.passes} passes"), va="center", fontsize=5.8)
+                    f"{r.seconds:.1f} s, {PATHS[r.path]}, {r.blocks} block{'s' if r.blocks > 1 else ''}"
+                    + ("" if r.passes == 1 else f", file read {r.passes} times"), va="center", fontsize=5.8)
     for i, r in enumerate(g.itertuples()):
         if not pd.isna(r.gpu_memory_gb):            # the requested device budget, to show where it is exceeded
             axs[0].plot([r.gpu_memory_gb] * 2, [i - 0.42, i + 0.02], color=INK, lw=1.2)
-    axs[0].plot([], [], color=INK, lw=1.2, label="GPU budget requested")
+    axs[0].plot([], [], color=INK, lw=1.2, label="GPU memory limit")
     axs[0].set_yticks(y, g.label, fontsize=6.5)
     axs[0].invert_yaxis()
     axs[0].set_xlabel("GiB")
     axs[0].set_xlim(0, max(g.peak_gpu_gb.max(), g.peak_rss_gb.max()) * 1.75)
-    axs[0].set_title("(a) CuPy: memory budgets", loc="left")
+    axs[0].set_title("(a)", loc="left", fontweight="bold")
     axs[0].legend(fontsize=6, loc="upper center", bbox_to_anchor=(0.5, -0.22), ncol=3, handlelength=1.2)
     n = mb[mb.backend == "numpy"].copy()
-    n["label"] = ["no limit" if pd.isna(r.cpu_memory_gb) else f"RAM {r.cpu_memory_gb:g} GiB" for r in n.itertuples()]
+    n["label"] = ["no limit" if pd.isna(r.cpu_memory_gb) else f"main memory {r.cpu_memory_gb:g} GiB" for r in n.itertuples()]
     y = np.arange(len(n))
     axs[1].barh(y, n.peak_rss_gb, 0.55, color=BCOL["numpy"])
     for i, r in enumerate(n.itertuples()):
         axs[1].text(r.peak_rss_gb + 0.6, i, f"{r.seconds:.1f} s, {r.blocks} block{'s' if r.blocks > 1 else ''}"
-                    + ("" if r.passes == 1 else f", {r.passes} passes"), va="center", fontsize=5.8)
+                    + ("" if r.passes == 1 else f", file read {r.passes} times"), va="center", fontsize=5.8)
     axs[1].set_yticks(y, n.label, fontsize=6.5)
     axs[1].invert_yaxis()
-    axs[1].set_xlabel("peak process RAM (GiB)")
+    axs[1].set_xlabel("Peak main memory (GiB)")
     axs[1].set_xlim(0, n.peak_rss_gb.max() * 1.7)
-    axs[1].set_title("(b) NumPy (CPU): RAM budgets", loc="left")
-    same = (mb.max_abs_diff_vs_unlimited.fillna(0) == 0).all()
-    fig.text(0.01, -0.07, "One 90.5 M point tile, after warm-up. " + (
-        "Every budgeted run gave the same values as the unlimited run (max |Δ| = 0 over all metrics).\n"
-        "GPU peak = largest CuPy memory pool, sampled every 10 ms." if same
-        else "Some budgeted runs differ from the unlimited run, see memory_budget.csv."), fontsize=6.2, color=INK2)
+    axs[1].set_title("(b)", loc="left", fontweight="bold")
     plt.tight_layout()
     save(fig, "fig6_memory")
 
