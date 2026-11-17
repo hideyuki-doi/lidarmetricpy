@@ -1,0 +1,241 @@
+"""docs/tables/table1_metrics.{csv,md}: every output of lidarmetricpy, one row each.
+
+The 137 per-cell metrics of compute_tile (column order of lidarmetricpy.api.output_columns) and the 9 rasters
+of canopylazr_file, with the package that defines them, the definition and the points used. Settings are those
+of the package defaults (the lidR workflow of the README). Run from the repository root:
+
+    python docs/make_metrics_table.py
+"""
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+import pandas as pd
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+from lidarmetricpy import Options  # noqa: E402
+from lidarmetricpy.api import output_columns  # noqa: E402
+
+TAB = ROOT / "docs/tables"
+CLZ = ["clz_chm", "clz_ground", "clz_vertical_sd_lad", "clz_rugosity", "clz_filled_ratio", "clz_porosity_ratio",
+       "clz_max_lad", "clz_max_lad_ht", "clz_toc_rugosity"]
+
+Z = "heights > 0.5 m"
+RET = "returns with heights > 0.5 m and 0 < ReturnNumber ≤ NumberOfReturns"
+VOX = "1 m voxels of points with rounded height > 0.5 m (x, y, z rounded half away from zero)"
+CHM = "0.5 m canopy raster: highest return per pixel, returns as discs of 0.15 m, empty pixels filled by knnidw"
+LEAFR = "all points of the cell, heights < 0 set to 0, 1 m layers (as.integer(z))"
+PFS = "points with height ≥ 0, one column of 1 m voxels per cell"
+CLZP = "elevations of all points of the file after Tukey's 1.5 IQR filter on z; canopyLazR's own grid"
+
+# (function or step, definition, points used)
+F = {"basic": "lidRmetrics::metrics_basic", "perc": "lidRmetrics::metrics_percentiles",
+     "above": "lidRmetrics::metrics_percabove", "disp": "lidRmetrics::metrics_dispersion",
+     "cd": "lidRmetrics::metrics_canopydensity", "lmom": "lidRmetrics::metrics_Lmoments",
+     "lad": "lidRmetrics::metrics_lad", "int": "lidRmetrics::metrics_interval",
+     "echo": "lidRmetrics::metrics_echo", "echo2": "lidRmetrics::metrics_echo2",
+     "rumple": "lidRmetrics::metrics_rumple", "vox": "lidRmetrics::metrics_voxels",
+     "kde": "lidRmetrics::metrics_kde", "home": "lidRmetrics::metrics_HOME"}
+LADDEF = "of the LAD profile of lidR::LAD(z, dz = 1, k = 0.5, z0 = 2) (gap fractions of 1 m layers from 2 m); NA with ≤ 2 points"
+
+
+def lidrmetrics_rows():
+    d = {
+        "n": (F["basic"], "number of points", Z),
+        "zmax": (F["basic"], "maximum height (m)", Z),
+        "zmin": (F["basic"], "minimum height (m)", Z),
+        "zmean": (F["basic"], "mean height (m)", Z),
+        "zvar": (F["basic"], "variance of heights (n − 1)", Z),
+        "zsd": (F["basic"], "standard deviation of heights (n − 1)", Z),
+        "zcv": (F["basic"], "coefficient of variation of heights, zsd / zmean × 100", Z),
+        "zskew": (F["basic"], "skewness, m3 / m2^1.5 (moments with 1 / n)", Z),
+        "zkurt": (F["basic"], "kurtosis, n Σ(z − mean)⁴ / (Σ(z − mean)²)² (not excess)", Z),
+    }
+    for p in [1] + list(range(5, 100, 5)) + [99]:
+        d[f"zq{p}"] = (F["perc"], f"{p}th percentile of heights (R quantile type 7)", Z)
+    d["pzabovemean"] = (F["above"], "% of points above the mean height", Z)
+    for t in (2, 5, 10, 20, 30):
+        d[f"pzabove{t}"] = (F["above"], f"% of points above {t} m", Z)
+    d.update({
+        "ziqr": (F["disp"], "interquartile range of heights (type 7)", Z),
+        "zMADmean": (F["disp"], "mean absolute deviation from the mean height", Z),
+        "zMADmedian": (F["disp"], "median absolute deviation from the median height (unscaled)", Z),
+        "CRR": (F["disp"], "canopy relief ratio, (mean − min) / (max − min)", Z),
+        "zentropy": (F["disp"], "normalised Shannon entropy of the counts in 1 m layers from 0 m (lidR::entropy)", Z),
+    })
+    for k in range(1, 10):
+        d[f"zpcum{k}"] = (F["cd"], f"cumulative % of points in the lowest {k} of 10 equal height slices "
+                          "between zmin and zmax (points at zmin excluded)", Z)
+    d.update({
+        "L1": (F["lmom"], "1st L-moment (mean)", Z),
+        "L2": (F["lmom"], "2nd L-moment (L-scale)", Z),
+        "L3": (F["lmom"], "3rd L-moment", Z),
+        "L4": (F["lmom"], "4th L-moment", Z),
+        "Lskew": (F["lmom"], "L-skewness, L3 / L2 (NA when all heights are equal; R gives rounding noise)", Z),
+        "Lkurt": (F["lmom"], "L-kurtosis, L4 / L2 (NA when all heights are equal; R gives rounding noise)", Z),
+        "Lcoefvar": (F["lmom"], "L-coefficient of variation, L2 / L1", Z),
+        "lad_min": (F["lad"], "minimum " + LADDEF, Z),
+        "lad_max": (F["lad"], "maximum " + LADDEF, Z),
+        "lad_mean": (F["lad"], "mean " + LADDEF, Z),
+        "lad_cv": (F["lad"], "coefficient of variation (sd / mean, not %) " + LADDEF, Z),
+        "lad_sum": (F["lad"], "sum " + LADDEF + " (0 when the profile is empty)", Z),
+        "pz_below_0": (F["int"], "% of points below 0 m (always 0 with zmin = 0.5)", Z),
+    })
+    for a, b in [("0", "0.5"), ("0.5", "2"), ("2", "5"), ("5", "10"), ("10", "20"), ("20", "30")]:
+        d[f"pz_{a}-{b}"] = (F["int"], f"% of points with {a} ≤ height < {b} m (hist(), right = FALSE)", Z)
+    d["pz_above_30"] = (F["int"], "% of points at or above 30 m", Z)
+    d.update({
+        "n_first": (F["echo"], "number of first returns", RET),
+        "n_intermediate": (F["echo"], "number of intermediate returns (1 < ReturnNumber < NumberOfReturns)", RET),
+        "n_last": (F["echo"], "number of last returns of multiple-return pulses (ReturnNumber = NumberOfReturns > 1)",
+                   RET),
+        "n_single": (F["echo"], "number of returns of single-return pulses", RET),
+        "n_multiple": (F["echo"], "number of returns of multiple-return pulses", RET),
+        "p_first": (F["echo"], "% first returns", RET),
+        "p_intermidiate": (F["echo"], "% intermediate returns (spelling as in lidRmetrics)", RET),
+        "p_last": (F["echo"], "% last returns (as n_last)", RET),
+        "p_single": (F["echo"], "% returns of single-return pulses", RET),
+        "p_multiple": (F["echo"], "% returns of multiple-return pulses", RET),
+        "ratio_last_first": (F["echo"], "n_last / n_first", RET),
+        "ratio_intermediate_first": (F["echo"], "n_intermediate / n_first", RET),
+        "ratio_multiple_single": (F["echo"], "n_multiple / n_single", RET),
+    })
+    for k in range(1, 5):
+        nth = {1: "smallest", 2: "2nd smallest", 3: "3rd smallest", 4: "4th smallest"}[k]
+        same = "= count of ReturnNumber 1 when first returns occur" if k == 1 else f"= count of ReturnNumber {k} when 1–{k} all occur"
+        d[f"n_return_{k}"] = (F["echo2"], f"number of returns with the {nth} return number present in the cell "
+                              f"({same})",
+                              "returns with heights > 0.5 m")
+    d["rumple"] = (F["rumple"], "area of the Delaunay surface of the highest point per 1 m pixel / its projected "
+                   "area (lidR::rumple_index)", "all points of the cell (no height limit)")
+    d.update({
+        "vn": (F["vox"], "number of filled voxels", VOX),
+        "vFRall": (F["vox"], "% filled voxels in the bounding box of the filled voxels", VOX),
+        "vFRcanopy": (F["vox"], "% filled voxels among voxels at or below the highest filled voxel of their column",
+                      VOX),
+        "vzrumple": (F["vox"], "Euclidean distance between the min–max-normalised histogram of filled-voxel "
+                     "heights (1 m bins) and its bin starts / (number of bins × 1 m)",
+                     VOX),
+        "vzsd": (F["vox"], "standard deviation of that normalised histogram", VOX),
+        "vzcv": (F["vox"], "coefficient of variation (%) of that normalised histogram", VOX),
+        "OpenGapSpace": (F["vox"], "% of the voxels of columns with a filled voxel that are empty and above the "
+                         "column's highest filled voxel (Lefsky et al. classes)", VOX),
+        "ClosedGapSpace": (F["vox"], "% of those voxels that are empty and below the column's highest filled voxel", VOX),
+        "Euphotic": (F["vox"], "% of those voxels that are filled and at or above 0.65 × the column's highest filled voxel", VOX),
+        "Oligophotic": (F["vox"], "% of those voxels that are filled and below 0.65 × the column's highest filled voxel", VOX),
+        "kde_peaks_count": (F["kde"], "number of peaks of stats::density(z, bw = 2); NA with ≤ 2 points", Z),
+    })
+    for k in range(1, 5):
+        d[f"kde_peak{k}_elev"] = (F["kde"], f"height of peak {k}: of the 4 highest-density peaks, ordered from the "
+                                  "highest elevation down (m)", Z)
+    for k in range(1, 5):
+        d[f"kde_peak{k}_value"] = (F["kde"], f"density at peak {k}", Z)
+    for k in range(1, 4):
+        d[f"kde_peak{k}_diff"] = (F["kde"], f"height difference between peaks {k} and {k + 1} (m)", Z)
+    d["HOME"] = (F["home"], "height of median energy: height of the point where the intensity summed from below "
+                 "and from above are closest (intensity 1 for input without intensities)", Z)
+    return {k: ("lidRmetrics 0.1.5", *v) for k, v in d.items()}
+
+
+def other_rows():
+    lad = "leafR LAD profile (lad.voxels, k = 1, 1 m layers; lad.profile)"
+    d = {
+        "enl": ("forestr 2.0.2", "forestr::calc_enl", "effective number of layers, 1 / Σ p², p = share of the "
+                "filled voxels in each 1 m layer", VOX),
+        "leafr_lai": ("leafR 0.3.5", "leafR::lai(min = 1, max = 100)", f"leaf area index, sum of the {lad}", LEAFR),
+        "leafr_lahv": ("leafR 0.3.5", "leafR::LAHV", "leaf area height volume, Σ layer height × LAD", LEAFR),
+        "leafr_lahv_laiw": ("leafR 0.3.5", "leafR::LAHV(LAI.weighted = TRUE)", "LAHV / LAI", LEAFR),
+        "leafr_lahv_hw": ("leafR 0.3.5", "leafR::LAHV(height.weighted = TRUE)", "LAHV / maximum layer height",
+                          LEAFR),
+        "leafr_lahv_laiw_hw": ("leafR 0.3.5", "leafR::LAHV(LAI.weighted = TRUE, height.weighted = TRUE)",
+                               "LAHV / LAI / maximum layer height", LEAFR),
+        "leafr_fhd": ("leafR 0.3.5", "leafR::FHD", "foliage height diversity, Shannon index of the relative LAD "
+                      "profile (layers with share ≥ 1 / number of layers)", LEAFR),
+        "leafr_fhd_even": ("leafR 0.3.5", "leafR::FHD(evenness = TRUE)", "FHD / ln(number of layers kept)", LEAFR),
+        "leafr_gs": ("leafR 0.3.5", "leafR::GS", "Gini–Simpson index, 1 − Σ p², of the relative LAD profile", LEAFR),
+        "leafr_gs_even": ("leafR 0.3.5", "leafR::GS(evenness = TRUE)", "GS / (1 − 1 / number of layers kept)",
+                          LEAFR),
+        "leafr_gc": ("leafR 0.3.5", "leafR::GC(threshold = 1)", "Gini coefficient of the heights ≥ 1 m",
+                     "points with height ≥ 1 m"),
+        "pfs_pai": ("PyForestScan 0.3.6", "calculate_pad → calculate_pai(min_height = 1)", "plant area index, "
+                    "sum of the plant area density (Beer–Lambert, k = 1) of the 1 m layers from 1 m", PFS),
+        "pfs_cover": ("PyForestScan 0.3.6", "calculate_canopy_cover(min_height = 2, k = 0.5)",
+                      "canopy cover, 1 − exp(−0.5 × PAI above 2 m)", PFS),
+        "pfs_fhd": ("PyForestScan 0.3.6", "calculate_fhd", "foliage height diversity, Shannon entropy of the "
+                    "return counts of the 1 m layers", PFS),
+    }
+    tree = ("lidR 4.3.3 (summary defined here)", "rasterize_canopy → locate_trees(lmf) → dalponte2016")
+    tops = ("tree tops (lmf: window 2.5 + 0.15 h m, 3–8 m; tops ≥ 5 m) on the " + CHM +
+            "; a tree belongs to the cell that contains its top")
+    crowns = "crowns of dalponte2016(th_tree = 2) grown from those tops on the same raster (pixels × 0.25 m²)"
+    d.update({
+        "tree_n": (*tree, "number of tree tops", tops),
+        "tree_h_mean": (*tree, "mean tree height (m)", tops),
+        "tree_h_sd": (*tree, "standard deviation of tree heights (n − 1)", tops),
+        "tree_h_cv": (*tree, "tree_h_sd / tree_h_mean (not %)", tops),
+        "tree_h_max": (*tree, "maximum tree height (m)", tops),
+        "tree_h_gini": (*tree, "Gini coefficient of tree heights (NA with fewer than 2 trees)", tops),
+        "tree_h_shannon": (*tree, "Shannon index of tree heights in 2 m classes", tops),
+        "crown_m2_mean": (*tree, "mean crown area (m²)", crowns),
+        "crown_m2_sd": (*tree, "standard deviation of crown area (m², n − 1)", crowns),
+    })
+    gap = ("ForestGapR 0.1.7 (summary defined here)", "getForestGaps(chm, threshold = 10, size = c(1, 10^4))")
+    gp = "gaps: connected areas of the canopy raster ≤ 10 m, 1 m² to 1 ha, found over the whole tile; " + CHM
+    d.update({
+        "gap_frac": (*gap, "share of the cell's canopy-raster pixels that lie in a gap", gp),
+        "gap_n": (*gap, "number of gaps that touch the cell", gp),
+        "gap_area_mean": (*gap, "mean whole area of the gaps that touch the cell (m²)", gp),
+    })
+    return d
+
+
+def clz_rows():
+    fn = "canopyLazR workflow (laz.to.array → canopy.height.levelr → machorn.lad); lidarmetricpy.canopylazr_file"
+    lad = "LAD of MacArthur–Horn on the voxel columns (z_res 1 m), above ht_cut (5 m)"
+    d = {
+        "clz_chm": "canopy height, highest − lowest elevation of the column (m)",
+        "clz_ground": "lowest elevation of the column (m), canopyLazR's ground",
+        "clz_vertical_sd_lad": f"standard deviation of the {lad} (rounded to 4 digits)",
+        "clz_rugosity": "within-canopy rugosity, standard deviation of clz_vertical_sd_lad in a 3 × 3 window",
+        "clz_filled_ratio": f"share of voxels with LAD > 0 among those with a value, {lad}",
+        "clz_porosity_ratio": f"share of voxels with LAD = 0 among those with a value, {lad}",
+        "clz_max_lad": f"maximum {lad}",
+        "clz_max_lad_ht": "voxel height (level) of clz_max_lad",
+        "clz_toc_rugosity": "top-of-canopy rugosity, Σ (window maximum − clz_chm) × pixel area × z_res in a 3 × 3 "
+                            "window",
+    }
+    return {k: ("canopyLazR 2.0", fn, v, CLZP) for k, v in d.items()}
+
+
+def main():
+    cols = [c for c in output_columns(Options()) if c not in ("x", "y", "n_points")]
+    rows = {**lidrmetrics_rows(), **other_rows()}
+    missing, extra = set(cols) - set(rows), set(rows) - set(cols)
+    assert not missing and not extra, (missing, extra)
+    clz = clz_rows()
+    assert list(clz) == CLZ
+    out = []
+    for i, c in enumerate(cols + CLZ, 1):
+        pkg, fn, d, pts = (rows | clz)[c]
+        out.append({"no": i, "metric": c, "output": "per cell" if c in rows else "raster (canopylazr_file)",
+                    "package": pkg, "function": fn, "definition": d, "points used": pts})
+    df = pd.DataFrame(out)
+    assert len(df) == 146 and df.metric.is_unique
+    TAB.mkdir(parents=True, exist_ok=True)
+    df.to_csv(TAB / "table1_metrics.csv", index=False)
+    md = ["# Table 1. Outputs of lidarmetricpy", "",
+          "The 137 per-cell metrics of `compute_tile` / `compute_tiles` (in the column order of "
+          "`lidarmetricpy.api.output_columns(Options())`, after `x`, `y` and `n_points`, the number of points in "
+          "the cell) and the 9 rasters of `canopylazr_file`, with default settings. Heights are above the terrain "
+          "model. Each value equals the named package applied to the same points (docs/tables/"
+          "table3_agreement.md, validation/). Made by docs/make_metrics_table.py.", "",
+          "| " + " | ".join(df.columns) + " |", "|" + "---|" * len(df.columns)]
+    md += ["| " + " | ".join(str(v).replace("|", "\\|") for v in r) + " |" for r in df.itertuples(index=False)]
+    (TAB / "table1_metrics.md").write_text("\n".join(md) + "\n")
+    print(df.package.value_counts().to_string())
+
+
+if __name__ == "__main__":
+    main()

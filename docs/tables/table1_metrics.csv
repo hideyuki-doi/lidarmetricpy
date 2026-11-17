@@ -1,60 +1,147 @@
-metric,package,definition,points used
-zq20,lidRmetrics 0.1.5,20th percentile of heights > 0.5 m (type 7),heights > 0.5 m (voxels: rounded z > 0.5; rumple: all points)
-zcv,lidRmetrics 0.1.5,coefficient of variation of heights (%),heights > 0.5 m (voxels: rounded z > 0.5; rumple: all points)
-CRR,lidRmetrics 0.1.5,canopy relief ratio (mean − min) / (max − min),heights > 0.5 m (voxels: rounded z > 0.5; rumple: all points)
-zentropy,lidRmetrics 0.1.5,"Shannon entropy of 1 m layers, normalized",heights > 0.5 m (voxels: rounded z > 0.5; rumple: all points)
-zpcum7,lidRmetrics 0.1.5,cumulative % of points in the lower 7 of 10 height slices,heights > 0.5 m (voxels: rounded z > 0.5; rumple: all points)
-zpcum9,lidRmetrics 0.1.5,"as zpcum7, 9 slices",heights > 0.5 m (voxels: rounded z > 0.5; rumple: all points)
-pz_above_30,lidRmetrics 0.1.5,% of points above 30 m,heights > 0.5 m (voxels: rounded z > 0.5; rumple: all points)
-L4,lidRmetrics 0.1.5,4th L-moment,heights > 0.5 m (voxels: rounded z > 0.5; rumple: all points)
-Lskew,lidRmetrics 0.1.5,L-skewness,heights > 0.5 m (voxels: rounded z > 0.5; rumple: all points)
-Lkurt,lidRmetrics 0.1.5,L-kurtosis,heights > 0.5 m (voxels: rounded z > 0.5; rumple: all points)
-lad_max,lidRmetrics 0.1.5,"max leaf area density (lidR::LAD, dz 1 m, k 0.5, z0 2 m)",heights > 0.5 m (voxels: rounded z > 0.5; rumple: all points)
-lad_mean,lidRmetrics 0.1.5,mean LAD,heights > 0.5 m (voxels: rounded z > 0.5; rumple: all points)
-lad_cv,lidRmetrics 0.1.5,coefficient of variation of LAD,heights > 0.5 m (voxels: rounded z > 0.5; rumple: all points)
-p_single,lidRmetrics 0.1.5,% single returns,heights > 0.5 m (voxels: rounded z > 0.5; rumple: all points)
-p_last,lidRmetrics 0.1.5,% last returns,heights > 0.5 m (voxels: rounded z > 0.5; rumple: all points)
-ratio_last_first,lidRmetrics 0.1.5,last / first returns,heights > 0.5 m (voxels: rounded z > 0.5; rumple: all points)
-OpenGapSpace,lidRmetrics 0.1.5,Lefsky open gap voxels (%),heights > 0.5 m (voxels: rounded z > 0.5; rumple: all points)
-ClosedGapSpace,lidRmetrics 0.1.5,Lefsky closed gap voxels (%),heights > 0.5 m (voxels: rounded z > 0.5; rumple: all points)
-Euphotic,lidRmetrics 0.1.5,Lefsky euphotic voxels (%),heights > 0.5 m (voxels: rounded z > 0.5; rumple: all points)
-Oligophotic,lidRmetrics 0.1.5,Lefsky oligophotic voxels (%),heights > 0.5 m (voxels: rounded z > 0.5; rumple: all points)
-vzsd,lidRmetrics 0.1.5,SD of normalized voxel height histogram,heights > 0.5 m (voxels: rounded z > 0.5; rumple: all points)
-vzcv,lidRmetrics 0.1.5,CV of normalized voxel height histogram,heights > 0.5 m (voxels: rounded z > 0.5; rumple: all points)
-kde_peaks_count,lidRmetrics 0.1.5,"peaks of density(z, bw = 2)",heights > 0.5 m (voxels: rounded z > 0.5; rumple: all points)
-rumple,lidRmetrics 0.1.5,3D / 2D area of the Delaunay surface of highest points per 1 m,heights > 0.5 m (voxels: rounded z > 0.5; rumple: all points)
-tree_n,lidR 4.3.3,"tree tops in the cell (lmf, ws 2.5 + 0.15 h, 3–8 m, hmin 5)","canopy raster 0.5 m, p2r(subcircle 0.15) + knnidw fill"
-tree_h_mean,lidR 4.3.3,mean tree height,"canopy raster 0.5 m, p2r(subcircle 0.15) + knnidw fill"
-tree_h_sd,lidR 4.3.3,SD of tree heights,"canopy raster 0.5 m, p2r(subcircle 0.15) + knnidw fill"
-tree_h_cv,lidR 4.3.3,CV of tree heights,"canopy raster 0.5 m, p2r(subcircle 0.15) + knnidw fill"
-tree_h_max,lidR 4.3.3,max tree height,"canopy raster 0.5 m, p2r(subcircle 0.15) + knnidw fill"
-tree_h_gini,lidR 4.3.3,Gini coefficient of tree heights,"canopy raster 0.5 m, p2r(subcircle 0.15) + knnidw fill"
-tree_h_shannon,lidR 4.3.3,Shannon index of 2 m height classes,"canopy raster 0.5 m, p2r(subcircle 0.15) + knnidw fill"
-crown_m2_mean,lidR 4.3.3,mean crown area (dalponte2016),"canopy raster 0.5 m, p2r(subcircle 0.15) + knnidw fill"
-crown_m2_sd,lidR 4.3.3,SD of crown area,"canopy raster 0.5 m, p2r(subcircle 0.15) + knnidw fill"
-leafr_lai,leafR 0.3.5,"LAI = sum of LAD (MacArthur–Horn on 1 m return slices, k = 1)","all points of the cell, z < 0 set to 0"
-leafr_lahv,leafR 0.3.5,leaf area height volume,"all points of the cell, z < 0 set to 0"
-leafr_lahv_laiw,leafR 0.3.5,LAHV weighted by LAI,"all points of the cell, z < 0 set to 0"
-leafr_lahv_hw,leafR 0.3.5,LAHV weighted by height,"all points of the cell, z < 0 set to 0"
-leafr_lahv_laiw_hw,leafR 0.3.5,LAHV weighted by LAI and height,"all points of the cell, z < 0 set to 0"
-leafr_fhd,leafR 0.3.5,foliage height diversity of the relative LAD profile,"all points of the cell, z < 0 set to 0"
-leafr_fhd_even,leafR 0.3.5,FHD evenness,"all points of the cell, z < 0 set to 0"
-leafr_gs,leafR 0.3.5,Gini–Simpson index of the relative LAD profile,"all points of the cell, z < 0 set to 0"
-leafr_gs_even,leafR 0.3.5,Gini–Simpson evenness,"all points of the cell, z < 0 set to 0"
-leafr_gc,leafR 0.3.5,Gini coefficient of heights ≥ 1 m,"all points of the cell, z < 0 set to 0"
-pfs_pai,PyForestScan 0.3.6,"plant area index above 1 m (PAD, k = 1)",points with z ≥ 0
-pfs_cover,PyForestScan 0.3.6,"canopy cover above 2 m, 1 − exp(−0.5 PAI)",points with z ≥ 0
-pfs_fhd,PyForestScan 0.3.6,entropy of 1 m voxel return counts,points with z ≥ 0
-enl,forestr 2.0.2,"effective number of layers, 1 / Σ p², filled 1 m voxels",filled 1 m voxels (lidRmetrics voxelization)
-gap_frac,ForestGapR 0.1.7,share of canopy pixels in gaps,"canopy raster ≤ 10 m, 1–10⁴ m²"
-gap_n,ForestGapR 0.1.7,gaps touching the cell,"canopy raster ≤ 10 m, 1–10⁴ m²"
-gap_area_mean,ForestGapR 0.1.7,mean full area of those gaps (m²),"canopy raster ≤ 10 m, 1–10⁴ m²"
-clz_chm,canopyLazR 2.0,max − min elevation per column,raw elevations of the file; Tukey 1.5 IQR filter; own grid
-clz_ground,canopyLazR 2.0,lowest point per column,raw elevations of the file; Tukey 1.5 IQR filter; own grid
-clz_vertical_sd_lad,canopyLazR 2.0,SD of LAD above ht.cut (rounded to 4 digits),raw elevations of the file; Tukey 1.5 IQR filter; own grid
-clz_rugosity,canopyLazR 2.0,SD of vertical SD of LAD in a 3 × 3 window (within-canopy rugosity),raw elevations of the file; Tukey 1.5 IQR filter; own grid
-clz_filled_ratio,canopyLazR 2.0,share of filled voxels above ht.cut,raw elevations of the file; Tukey 1.5 IQR filter; own grid
-clz_porosity_ratio,canopyLazR 2.0,share of empty voxels,raw elevations of the file; Tukey 1.5 IQR filter; own grid
-clz_max_lad,canopyLazR 2.0,max LAD in the column,raw elevations of the file; Tukey 1.5 IQR filter; own grid
-clz_max_lad_ht,canopyLazR 2.0,voxel height of max LAD,raw elevations of the file; Tukey 1.5 IQR filter; own grid
-clz_toc_rugosity,canopyLazR 2.0,"top-of-canopy rugosity volume, 3 × 3 window",raw elevations of the file; Tukey 1.5 IQR filter; own grid
+no,metric,output,package,function,definition,points used
+1,n,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_basic,number of points,heights > 0.5 m
+2,zmax,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_basic,maximum height (m),heights > 0.5 m
+3,zmin,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_basic,minimum height (m),heights > 0.5 m
+4,zmean,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_basic,mean height (m),heights > 0.5 m
+5,zvar,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_basic,variance of heights (n − 1),heights > 0.5 m
+6,zsd,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_basic,standard deviation of heights (n − 1),heights > 0.5 m
+7,zcv,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_basic,"coefficient of variation of heights, zsd / zmean × 100",heights > 0.5 m
+8,zskew,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_basic,"skewness, m3 / m2^1.5 (moments with 1 / n)",heights > 0.5 m
+9,zkurt,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_basic,"kurtosis, n Σ(z − mean)⁴ / (Σ(z − mean)²)² (not excess)",heights > 0.5 m
+10,zq1,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_percentiles,1th percentile of heights (R quantile type 7),heights > 0.5 m
+11,zq5,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_percentiles,5th percentile of heights (R quantile type 7),heights > 0.5 m
+12,zq10,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_percentiles,10th percentile of heights (R quantile type 7),heights > 0.5 m
+13,zq15,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_percentiles,15th percentile of heights (R quantile type 7),heights > 0.5 m
+14,zq20,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_percentiles,20th percentile of heights (R quantile type 7),heights > 0.5 m
+15,zq25,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_percentiles,25th percentile of heights (R quantile type 7),heights > 0.5 m
+16,zq30,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_percentiles,30th percentile of heights (R quantile type 7),heights > 0.5 m
+17,zq35,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_percentiles,35th percentile of heights (R quantile type 7),heights > 0.5 m
+18,zq40,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_percentiles,40th percentile of heights (R quantile type 7),heights > 0.5 m
+19,zq45,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_percentiles,45th percentile of heights (R quantile type 7),heights > 0.5 m
+20,zq50,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_percentiles,50th percentile of heights (R quantile type 7),heights > 0.5 m
+21,zq55,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_percentiles,55th percentile of heights (R quantile type 7),heights > 0.5 m
+22,zq60,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_percentiles,60th percentile of heights (R quantile type 7),heights > 0.5 m
+23,zq65,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_percentiles,65th percentile of heights (R quantile type 7),heights > 0.5 m
+24,zq70,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_percentiles,70th percentile of heights (R quantile type 7),heights > 0.5 m
+25,zq75,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_percentiles,75th percentile of heights (R quantile type 7),heights > 0.5 m
+26,zq80,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_percentiles,80th percentile of heights (R quantile type 7),heights > 0.5 m
+27,zq85,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_percentiles,85th percentile of heights (R quantile type 7),heights > 0.5 m
+28,zq90,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_percentiles,90th percentile of heights (R quantile type 7),heights > 0.5 m
+29,zq95,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_percentiles,95th percentile of heights (R quantile type 7),heights > 0.5 m
+30,zq99,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_percentiles,99th percentile of heights (R quantile type 7),heights > 0.5 m
+31,pzabovemean,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_percabove,% of points above the mean height,heights > 0.5 m
+32,pzabove2,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_percabove,% of points above 2 m,heights > 0.5 m
+33,pzabove5,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_percabove,% of points above 5 m,heights > 0.5 m
+34,pzabove10,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_percabove,% of points above 10 m,heights > 0.5 m
+35,pzabove20,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_percabove,% of points above 20 m,heights > 0.5 m
+36,pzabove30,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_percabove,% of points above 30 m,heights > 0.5 m
+37,ziqr,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_dispersion,interquartile range of heights (type 7),heights > 0.5 m
+38,zMADmean,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_dispersion,mean absolute deviation from the mean height,heights > 0.5 m
+39,zMADmedian,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_dispersion,median absolute deviation from the median height (unscaled),heights > 0.5 m
+40,CRR,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_dispersion,"canopy relief ratio, (mean − min) / (max − min)",heights > 0.5 m
+41,zentropy,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_dispersion,normalised Shannon entropy of the counts in 1 m layers from 0 m (lidR::entropy),heights > 0.5 m
+42,zpcum1,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_canopydensity,cumulative % of points in the lowest 1 of 10 equal height slices between zmin and zmax (points at zmin excluded),heights > 0.5 m
+43,zpcum2,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_canopydensity,cumulative % of points in the lowest 2 of 10 equal height slices between zmin and zmax (points at zmin excluded),heights > 0.5 m
+44,zpcum3,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_canopydensity,cumulative % of points in the lowest 3 of 10 equal height slices between zmin and zmax (points at zmin excluded),heights > 0.5 m
+45,zpcum4,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_canopydensity,cumulative % of points in the lowest 4 of 10 equal height slices between zmin and zmax (points at zmin excluded),heights > 0.5 m
+46,zpcum5,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_canopydensity,cumulative % of points in the lowest 5 of 10 equal height slices between zmin and zmax (points at zmin excluded),heights > 0.5 m
+47,zpcum6,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_canopydensity,cumulative % of points in the lowest 6 of 10 equal height slices between zmin and zmax (points at zmin excluded),heights > 0.5 m
+48,zpcum7,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_canopydensity,cumulative % of points in the lowest 7 of 10 equal height slices between zmin and zmax (points at zmin excluded),heights > 0.5 m
+49,zpcum8,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_canopydensity,cumulative % of points in the lowest 8 of 10 equal height slices between zmin and zmax (points at zmin excluded),heights > 0.5 m
+50,zpcum9,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_canopydensity,cumulative % of points in the lowest 9 of 10 equal height slices between zmin and zmax (points at zmin excluded),heights > 0.5 m
+51,L1,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_Lmoments,1st L-moment (mean),heights > 0.5 m
+52,L2,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_Lmoments,2nd L-moment (L-scale),heights > 0.5 m
+53,L3,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_Lmoments,3rd L-moment,heights > 0.5 m
+54,L4,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_Lmoments,4th L-moment,heights > 0.5 m
+55,Lskew,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_Lmoments,"L-skewness, L3 / L2 (NA when all heights are equal; R gives rounding noise)",heights > 0.5 m
+56,Lkurt,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_Lmoments,"L-kurtosis, L4 / L2 (NA when all heights are equal; R gives rounding noise)",heights > 0.5 m
+57,Lcoefvar,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_Lmoments,"L-coefficient of variation, L2 / L1",heights > 0.5 m
+58,lad_min,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_lad,"minimum of the LAD profile of lidR::LAD(z, dz = 1, k = 0.5, z0 = 2) (gap fractions of 1 m layers from 2 m); NA with ≤ 2 points",heights > 0.5 m
+59,lad_max,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_lad,"maximum of the LAD profile of lidR::LAD(z, dz = 1, k = 0.5, z0 = 2) (gap fractions of 1 m layers from 2 m); NA with ≤ 2 points",heights > 0.5 m
+60,lad_mean,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_lad,"mean of the LAD profile of lidR::LAD(z, dz = 1, k = 0.5, z0 = 2) (gap fractions of 1 m layers from 2 m); NA with ≤ 2 points",heights > 0.5 m
+61,lad_cv,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_lad,"coefficient of variation (sd / mean, not %) of the LAD profile of lidR::LAD(z, dz = 1, k = 0.5, z0 = 2) (gap fractions of 1 m layers from 2 m); NA with ≤ 2 points",heights > 0.5 m
+62,lad_sum,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_lad,"sum of the LAD profile of lidR::LAD(z, dz = 1, k = 0.5, z0 = 2) (gap fractions of 1 m layers from 2 m); NA with ≤ 2 points (0 when the profile is empty)",heights > 0.5 m
+63,pz_below_0,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_interval,% of points below 0 m (always 0 with zmin = 0.5),heights > 0.5 m
+64,pz_0-0.5,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_interval,"% of points with 0 ≤ height < 0.5 m (hist(), right = FALSE)",heights > 0.5 m
+65,pz_0.5-2,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_interval,"% of points with 0.5 ≤ height < 2 m (hist(), right = FALSE)",heights > 0.5 m
+66,pz_2-5,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_interval,"% of points with 2 ≤ height < 5 m (hist(), right = FALSE)",heights > 0.5 m
+67,pz_5-10,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_interval,"% of points with 5 ≤ height < 10 m (hist(), right = FALSE)",heights > 0.5 m
+68,pz_10-20,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_interval,"% of points with 10 ≤ height < 20 m (hist(), right = FALSE)",heights > 0.5 m
+69,pz_20-30,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_interval,"% of points with 20 ≤ height < 30 m (hist(), right = FALSE)",heights > 0.5 m
+70,pz_above_30,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_interval,% of points at or above 30 m,heights > 0.5 m
+71,n_first,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_echo,number of first returns,returns with heights > 0.5 m and 0 < ReturnNumber ≤ NumberOfReturns
+72,n_intermediate,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_echo,number of intermediate returns (1 < ReturnNumber < NumberOfReturns),returns with heights > 0.5 m and 0 < ReturnNumber ≤ NumberOfReturns
+73,n_last,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_echo,number of last returns of multiple-return pulses (ReturnNumber = NumberOfReturns > 1),returns with heights > 0.5 m and 0 < ReturnNumber ≤ NumberOfReturns
+74,n_single,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_echo,number of returns of single-return pulses,returns with heights > 0.5 m and 0 < ReturnNumber ≤ NumberOfReturns
+75,n_multiple,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_echo,number of returns of multiple-return pulses,returns with heights > 0.5 m and 0 < ReturnNumber ≤ NumberOfReturns
+76,p_first,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_echo,% first returns,returns with heights > 0.5 m and 0 < ReturnNumber ≤ NumberOfReturns
+77,p_intermidiate,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_echo,% intermediate returns (spelling as in lidRmetrics),returns with heights > 0.5 m and 0 < ReturnNumber ≤ NumberOfReturns
+78,p_last,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_echo,% last returns (as n_last),returns with heights > 0.5 m and 0 < ReturnNumber ≤ NumberOfReturns
+79,p_single,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_echo,% returns of single-return pulses,returns with heights > 0.5 m and 0 < ReturnNumber ≤ NumberOfReturns
+80,p_multiple,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_echo,% returns of multiple-return pulses,returns with heights > 0.5 m and 0 < ReturnNumber ≤ NumberOfReturns
+81,ratio_last_first,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_echo,n_last / n_first,returns with heights > 0.5 m and 0 < ReturnNumber ≤ NumberOfReturns
+82,ratio_intermediate_first,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_echo,n_intermediate / n_first,returns with heights > 0.5 m and 0 < ReturnNumber ≤ NumberOfReturns
+83,ratio_multiple_single,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_echo,n_multiple / n_single,returns with heights > 0.5 m and 0 < ReturnNumber ≤ NumberOfReturns
+84,n_return_1,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_echo2,number of returns with the smallest return number present in the cell (= count of ReturnNumber 1 when first returns occur),returns with heights > 0.5 m
+85,n_return_2,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_echo2,number of returns with the 2nd smallest return number present in the cell (= count of ReturnNumber 2 when 1–2 all occur),returns with heights > 0.5 m
+86,n_return_3,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_echo2,number of returns with the 3rd smallest return number present in the cell (= count of ReturnNumber 3 when 1–3 all occur),returns with heights > 0.5 m
+87,n_return_4,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_echo2,number of returns with the 4th smallest return number present in the cell (= count of ReturnNumber 4 when 1–4 all occur),returns with heights > 0.5 m
+88,rumple,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_rumple,area of the Delaunay surface of the highest point per 1 m pixel / its projected area (lidR::rumple_index),all points of the cell (no height limit)
+89,vn,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_voxels,number of filled voxels,"1 m voxels of points with rounded height > 0.5 m (x, y, z rounded half away from zero)"
+90,vFRall,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_voxels,% filled voxels in the bounding box of the filled voxels,"1 m voxels of points with rounded height > 0.5 m (x, y, z rounded half away from zero)"
+91,vFRcanopy,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_voxels,% filled voxels among voxels at or below the highest filled voxel of their column,"1 m voxels of points with rounded height > 0.5 m (x, y, z rounded half away from zero)"
+92,vzrumple,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_voxels,Euclidean distance between the min–max-normalised histogram of filled-voxel heights (1 m bins) and its bin starts / (number of bins × 1 m),"1 m voxels of points with rounded height > 0.5 m (x, y, z rounded half away from zero)"
+93,vzsd,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_voxels,standard deviation of that normalised histogram,"1 m voxels of points with rounded height > 0.5 m (x, y, z rounded half away from zero)"
+94,vzcv,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_voxels,coefficient of variation (%) of that normalised histogram,"1 m voxels of points with rounded height > 0.5 m (x, y, z rounded half away from zero)"
+95,OpenGapSpace,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_voxels,% of the voxels of columns with a filled voxel that are empty and above the column's highest filled voxel (Lefsky et al. classes),"1 m voxels of points with rounded height > 0.5 m (x, y, z rounded half away from zero)"
+96,ClosedGapSpace,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_voxels,% of those voxels that are empty and below the column's highest filled voxel,"1 m voxels of points with rounded height > 0.5 m (x, y, z rounded half away from zero)"
+97,Euphotic,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_voxels,% of those voxels that are filled and at or above 0.65 × the column's highest filled voxel,"1 m voxels of points with rounded height > 0.5 m (x, y, z rounded half away from zero)"
+98,Oligophotic,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_voxels,% of those voxels that are filled and below 0.65 × the column's highest filled voxel,"1 m voxels of points with rounded height > 0.5 m (x, y, z rounded half away from zero)"
+99,kde_peaks_count,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_kde,"number of peaks of stats::density(z, bw = 2); NA with ≤ 2 points",heights > 0.5 m
+100,kde_peak1_elev,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_kde,"height of peak 1: of the 4 highest-density peaks, ordered from the highest elevation down (m)",heights > 0.5 m
+101,kde_peak2_elev,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_kde,"height of peak 2: of the 4 highest-density peaks, ordered from the highest elevation down (m)",heights > 0.5 m
+102,kde_peak3_elev,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_kde,"height of peak 3: of the 4 highest-density peaks, ordered from the highest elevation down (m)",heights > 0.5 m
+103,kde_peak4_elev,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_kde,"height of peak 4: of the 4 highest-density peaks, ordered from the highest elevation down (m)",heights > 0.5 m
+104,kde_peak1_value,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_kde,density at peak 1,heights > 0.5 m
+105,kde_peak2_value,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_kde,density at peak 2,heights > 0.5 m
+106,kde_peak3_value,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_kde,density at peak 3,heights > 0.5 m
+107,kde_peak4_value,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_kde,density at peak 4,heights > 0.5 m
+108,kde_peak1_diff,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_kde,height difference between peaks 1 and 2 (m),heights > 0.5 m
+109,kde_peak2_diff,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_kde,height difference between peaks 2 and 3 (m),heights > 0.5 m
+110,kde_peak3_diff,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_kde,height difference between peaks 3 and 4 (m),heights > 0.5 m
+111,HOME,per cell,lidRmetrics 0.1.5,lidRmetrics::metrics_HOME,height of median energy: height of the point where the intensity summed from below and from above are closest (intensity 1 for input without intensities),heights > 0.5 m
+112,enl,per cell,forestr 2.0.2,forestr::calc_enl,"effective number of layers, 1 / Σ p², p = share of the filled voxels in each 1 m layer","1 m voxels of points with rounded height > 0.5 m (x, y, z rounded half away from zero)"
+113,leafr_lai,per cell,leafR 0.3.5,"leafR::lai(min = 1, max = 100)","leaf area index, sum of the leafR LAD profile (lad.voxels, k = 1, 1 m layers; lad.profile)","all points of the cell, heights < 0 set to 0, 1 m layers (as.integer(z))"
+114,leafr_lahv,per cell,leafR 0.3.5,leafR::LAHV,"leaf area height volume, Σ layer height × LAD","all points of the cell, heights < 0 set to 0, 1 m layers (as.integer(z))"
+115,leafr_lahv_laiw,per cell,leafR 0.3.5,leafR::LAHV(LAI.weighted = TRUE),LAHV / LAI,"all points of the cell, heights < 0 set to 0, 1 m layers (as.integer(z))"
+116,leafr_lahv_hw,per cell,leafR 0.3.5,leafR::LAHV(height.weighted = TRUE),LAHV / maximum layer height,"all points of the cell, heights < 0 set to 0, 1 m layers (as.integer(z))"
+117,leafr_lahv_laiw_hw,per cell,leafR 0.3.5,"leafR::LAHV(LAI.weighted = TRUE, height.weighted = TRUE)",LAHV / LAI / maximum layer height,"all points of the cell, heights < 0 set to 0, 1 m layers (as.integer(z))"
+118,leafr_fhd,per cell,leafR 0.3.5,leafR::FHD,"foliage height diversity, Shannon index of the relative LAD profile (layers with share ≥ 1 / number of layers)","all points of the cell, heights < 0 set to 0, 1 m layers (as.integer(z))"
+119,leafr_fhd_even,per cell,leafR 0.3.5,leafR::FHD(evenness = TRUE),FHD / ln(number of layers kept),"all points of the cell, heights < 0 set to 0, 1 m layers (as.integer(z))"
+120,leafr_gs,per cell,leafR 0.3.5,leafR::GS,"Gini–Simpson index, 1 − Σ p², of the relative LAD profile","all points of the cell, heights < 0 set to 0, 1 m layers (as.integer(z))"
+121,leafr_gs_even,per cell,leafR 0.3.5,leafR::GS(evenness = TRUE),GS / (1 − 1 / number of layers kept),"all points of the cell, heights < 0 set to 0, 1 m layers (as.integer(z))"
+122,leafr_gc,per cell,leafR 0.3.5,leafR::GC(threshold = 1),Gini coefficient of the heights ≥ 1 m,points with height ≥ 1 m
+123,pfs_pai,per cell,PyForestScan 0.3.6,calculate_pad → calculate_pai(min_height = 1),"plant area index, sum of the plant area density (Beer–Lambert, k = 1) of the 1 m layers from 1 m","points with height ≥ 0, one column of 1 m voxels per cell"
+124,pfs_cover,per cell,PyForestScan 0.3.6,"calculate_canopy_cover(min_height = 2, k = 0.5)","canopy cover, 1 − exp(−0.5 × PAI above 2 m)","points with height ≥ 0, one column of 1 m voxels per cell"
+125,pfs_fhd,per cell,PyForestScan 0.3.6,calculate_fhd,"foliage height diversity, Shannon entropy of the return counts of the 1 m layers","points with height ≥ 0, one column of 1 m voxels per cell"
+126,tree_n,per cell,lidR 4.3.3 (summary defined here),rasterize_canopy → locate_trees(lmf) → dalponte2016,number of tree tops,"tree tops (lmf: window 2.5 + 0.15 h m, 3–8 m; tops ≥ 5 m) on the 0.5 m canopy raster: highest return per pixel, returns as discs of 0.15 m, empty pixels filled by knnidw; a tree belongs to the cell that contains its top"
+127,tree_h_mean,per cell,lidR 4.3.3 (summary defined here),rasterize_canopy → locate_trees(lmf) → dalponte2016,mean tree height (m),"tree tops (lmf: window 2.5 + 0.15 h m, 3–8 m; tops ≥ 5 m) on the 0.5 m canopy raster: highest return per pixel, returns as discs of 0.15 m, empty pixels filled by knnidw; a tree belongs to the cell that contains its top"
+128,tree_h_sd,per cell,lidR 4.3.3 (summary defined here),rasterize_canopy → locate_trees(lmf) → dalponte2016,standard deviation of tree heights (n − 1),"tree tops (lmf: window 2.5 + 0.15 h m, 3–8 m; tops ≥ 5 m) on the 0.5 m canopy raster: highest return per pixel, returns as discs of 0.15 m, empty pixels filled by knnidw; a tree belongs to the cell that contains its top"
+129,tree_h_cv,per cell,lidR 4.3.3 (summary defined here),rasterize_canopy → locate_trees(lmf) → dalponte2016,tree_h_sd / tree_h_mean (not %),"tree tops (lmf: window 2.5 + 0.15 h m, 3–8 m; tops ≥ 5 m) on the 0.5 m canopy raster: highest return per pixel, returns as discs of 0.15 m, empty pixels filled by knnidw; a tree belongs to the cell that contains its top"
+130,tree_h_max,per cell,lidR 4.3.3 (summary defined here),rasterize_canopy → locate_trees(lmf) → dalponte2016,maximum tree height (m),"tree tops (lmf: window 2.5 + 0.15 h m, 3–8 m; tops ≥ 5 m) on the 0.5 m canopy raster: highest return per pixel, returns as discs of 0.15 m, empty pixels filled by knnidw; a tree belongs to the cell that contains its top"
+131,tree_h_gini,per cell,lidR 4.3.3 (summary defined here),rasterize_canopy → locate_trees(lmf) → dalponte2016,Gini coefficient of tree heights (NA with fewer than 2 trees),"tree tops (lmf: window 2.5 + 0.15 h m, 3–8 m; tops ≥ 5 m) on the 0.5 m canopy raster: highest return per pixel, returns as discs of 0.15 m, empty pixels filled by knnidw; a tree belongs to the cell that contains its top"
+132,tree_h_shannon,per cell,lidR 4.3.3 (summary defined here),rasterize_canopy → locate_trees(lmf) → dalponte2016,Shannon index of tree heights in 2 m classes,"tree tops (lmf: window 2.5 + 0.15 h m, 3–8 m; tops ≥ 5 m) on the 0.5 m canopy raster: highest return per pixel, returns as discs of 0.15 m, empty pixels filled by knnidw; a tree belongs to the cell that contains its top"
+133,crown_m2_mean,per cell,lidR 4.3.3 (summary defined here),rasterize_canopy → locate_trees(lmf) → dalponte2016,mean crown area (m²),crowns of dalponte2016(th_tree = 2) grown from those tops on the same raster (pixels × 0.25 m²)
+134,crown_m2_sd,per cell,lidR 4.3.3 (summary defined here),rasterize_canopy → locate_trees(lmf) → dalponte2016,"standard deviation of crown area (m², n − 1)",crowns of dalponte2016(th_tree = 2) grown from those tops on the same raster (pixels × 0.25 m²)
+135,gap_frac,per cell,ForestGapR 0.1.7 (summary defined here),"getForestGaps(chm, threshold = 10, size = c(1, 10^4))",share of the cell's canopy-raster pixels that lie in a gap,"gaps: connected areas of the canopy raster ≤ 10 m, 1 m² to 1 ha, found over the whole tile; 0.5 m canopy raster: highest return per pixel, returns as discs of 0.15 m, empty pixels filled by knnidw"
+136,gap_n,per cell,ForestGapR 0.1.7 (summary defined here),"getForestGaps(chm, threshold = 10, size = c(1, 10^4))",number of gaps that touch the cell,"gaps: connected areas of the canopy raster ≤ 10 m, 1 m² to 1 ha, found over the whole tile; 0.5 m canopy raster: highest return per pixel, returns as discs of 0.15 m, empty pixels filled by knnidw"
+137,gap_area_mean,per cell,ForestGapR 0.1.7 (summary defined here),"getForestGaps(chm, threshold = 10, size = c(1, 10^4))",mean whole area of the gaps that touch the cell (m²),"gaps: connected areas of the canopy raster ≤ 10 m, 1 m² to 1 ha, found over the whole tile; 0.5 m canopy raster: highest return per pixel, returns as discs of 0.15 m, empty pixels filled by knnidw"
+138,clz_chm,raster (canopylazr_file),canopyLazR 2.0,canopyLazR workflow (laz.to.array → canopy.height.levelr → machorn.lad); lidarmetricpy.canopylazr_file,"canopy height, highest − lowest elevation of the column (m)",elevations of all points of the file after Tukey's 1.5 IQR filter on z; canopyLazR's own grid
+139,clz_ground,raster (canopylazr_file),canopyLazR 2.0,canopyLazR workflow (laz.to.array → canopy.height.levelr → machorn.lad); lidarmetricpy.canopylazr_file,"lowest elevation of the column (m), canopyLazR's ground",elevations of all points of the file after Tukey's 1.5 IQR filter on z; canopyLazR's own grid
+140,clz_vertical_sd_lad,raster (canopylazr_file),canopyLazR 2.0,canopyLazR workflow (laz.to.array → canopy.height.levelr → machorn.lad); lidarmetricpy.canopylazr_file,"standard deviation of the LAD of MacArthur–Horn on the voxel columns (z_res 1 m), above ht_cut (5 m) (rounded to 4 digits)",elevations of all points of the file after Tukey's 1.5 IQR filter on z; canopyLazR's own grid
+141,clz_rugosity,raster (canopylazr_file),canopyLazR 2.0,canopyLazR workflow (laz.to.array → canopy.height.levelr → machorn.lad); lidarmetricpy.canopylazr_file,"within-canopy rugosity, standard deviation of clz_vertical_sd_lad in a 3 × 3 window",elevations of all points of the file after Tukey's 1.5 IQR filter on z; canopyLazR's own grid
+142,clz_filled_ratio,raster (canopylazr_file),canopyLazR 2.0,canopyLazR workflow (laz.to.array → canopy.height.levelr → machorn.lad); lidarmetricpy.canopylazr_file,"share of voxels with LAD > 0 among those with a value, LAD of MacArthur–Horn on the voxel columns (z_res 1 m), above ht_cut (5 m)",elevations of all points of the file after Tukey's 1.5 IQR filter on z; canopyLazR's own grid
+143,clz_porosity_ratio,raster (canopylazr_file),canopyLazR 2.0,canopyLazR workflow (laz.to.array → canopy.height.levelr → machorn.lad); lidarmetricpy.canopylazr_file,"share of voxels with LAD = 0 among those with a value, LAD of MacArthur–Horn on the voxel columns (z_res 1 m), above ht_cut (5 m)",elevations of all points of the file after Tukey's 1.5 IQR filter on z; canopyLazR's own grid
+144,clz_max_lad,raster (canopylazr_file),canopyLazR 2.0,canopyLazR workflow (laz.to.array → canopy.height.levelr → machorn.lad); lidarmetricpy.canopylazr_file,"maximum LAD of MacArthur–Horn on the voxel columns (z_res 1 m), above ht_cut (5 m)",elevations of all points of the file after Tukey's 1.5 IQR filter on z; canopyLazR's own grid
+145,clz_max_lad_ht,raster (canopylazr_file),canopyLazR 2.0,canopyLazR workflow (laz.to.array → canopy.height.levelr → machorn.lad); lidarmetricpy.canopylazr_file,voxel height (level) of clz_max_lad,elevations of all points of the file after Tukey's 1.5 IQR filter on z; canopyLazR's own grid
+146,clz_toc_rugosity,raster (canopylazr_file),canopyLazR 2.0,canopyLazR workflow (laz.to.array → canopy.height.levelr → machorn.lad); lidarmetricpy.canopylazr_file,"top-of-canopy rugosity, Σ (window maximum − clz_chm) × pixel area × z_res in a 3 × 3 window",elevations of all points of the file after Tukey's 1.5 IQR filter on z; canopyLazR's own grid

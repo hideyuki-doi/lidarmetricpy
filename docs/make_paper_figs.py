@@ -373,47 +373,6 @@ def fig_memory(mb):
 
 
 # ------------------------------------------------------------------ tables
-DEFS = {
-    "zq20": "20th percentile of heights > 0.5 m (type 7)", "zcv": "coefficient of variation of heights (%)",
-    "CRR": "canopy relief ratio (mean − min) / (max − min)", "zentropy": "Shannon entropy of 1 m layers, normalized",
-    "zpcum7": "cumulative % of points in the lower 7 of 10 height slices", "zpcum9": "as zpcum7, 9 slices",
-    "pz_above_30": "% of points above 30 m", "L4": "4th L-moment", "Lskew": "L-skewness", "Lkurt": "L-kurtosis",
-    "lad_max": "max leaf area density (lidR::LAD, dz 1 m, k 0.5, z0 2 m)", "lad_mean": "mean LAD",
-    "lad_cv": "coefficient of variation of LAD", "p_single": "% single returns", "p_last": "% last returns",
-    "ratio_last_first": "last / first returns", "OpenGapSpace": "Lefsky open gap voxels (%)",
-    "ClosedGapSpace": "Lefsky closed gap voxels (%)", "Euphotic": "Lefsky euphotic voxels (%)",
-    "Oligophotic": "Lefsky oligophotic voxels (%)", "vzsd": "SD of normalized voxel height histogram",
-    "vzcv": "CV of normalized voxel height histogram", "kde_peaks_count": "peaks of density(z, bw = 2)",
-    "rumple": "3D / 2D area of the Delaunay surface of highest points per 1 m",
-    "tree_n": "tree tops in the cell (lmf, ws 2.5 + 0.15 h, 3–8 m, hmin 5)", "tree_h_mean": "mean tree height",
-    "tree_h_sd": "SD of tree heights", "tree_h_cv": "CV of tree heights", "tree_h_max": "max tree height",
-    "tree_h_gini": "Gini coefficient of tree heights", "tree_h_shannon": "Shannon index of 2 m height classes",
-    "crown_m2_mean": "mean crown area (dalponte2016)", "crown_m2_sd": "SD of crown area",
-    "leafr_lai": "LAI = sum of LAD (MacArthur–Horn on 1 m return slices, k = 1)",
-    "leafr_lahv": "leaf area height volume", "leafr_lahv_laiw": "LAHV weighted by LAI",
-    "leafr_lahv_hw": "LAHV weighted by height", "leafr_lahv_laiw_hw": "LAHV weighted by LAI and height",
-    "leafr_fhd": "foliage height diversity of the relative LAD profile", "leafr_fhd_even": "FHD evenness",
-    "leafr_gs": "Gini–Simpson index of the relative LAD profile", "leafr_gs_even": "Gini–Simpson evenness",
-    "leafr_gc": "Gini coefficient of heights ≥ 1 m", "pfs_pai": "plant area index above 1 m (PAD, k = 1)",
-    "pfs_cover": "canopy cover above 2 m, 1 − exp(−0.5 PAI)", "pfs_fhd": "entropy of 1 m voxel return counts",
-    "enl": "effective number of layers, 1 / Σ p², filled 1 m voxels", "gap_frac": "share of canopy pixels in gaps",
-    "gap_n": "gaps touching the cell", "gap_area_mean": "mean full area of those gaps (m²)",
-    "clz_chm": "max − min elevation per column", "clz_ground": "lowest point per column",
-    "clz_vertical_sd_lad": "SD of LAD above ht.cut (rounded to 4 digits)",
-    "clz_rugosity": "SD of vertical SD of LAD in a 3 × 3 window (within-canopy rugosity)",
-    "clz_filled_ratio": "share of filled voxels above ht.cut", "clz_porosity_ratio": "share of empty voxels",
-    "clz_max_lad": "max LAD in the column", "clz_max_lad_ht": "voxel height of max LAD",
-    "clz_toc_rugosity": "top-of-canopy rugosity volume, 3 × 3 window"}
-POINTS = {"lidRmetrics": "heights > 0.5 m (voxels: rounded z > 0.5; rumple: all points)",
-          "lidR trees": "canopy raster 0.5 m, p2r(subcircle 0.15) + knnidw fill",
-          "leafR": "all points of the cell, z < 0 set to 0", "PyForestScan": "points with z ≥ 0",
-          "forestr": "filled 1 m voxels (lidRmetrics voxelization)", "ForestGapR": "canopy raster ≤ 10 m, 1–10⁴ m²",
-          "canopyLazR": "raw elevations of the file; Tukey 1.5 IQR filter; own grid"}
-VERS = {"lidRmetrics": "lidRmetrics 0.1.5", "lidR trees": "lidR 4.3.3", "leafR": "leafR 0.3.5",
-        "PyForestScan": "PyForestScan 0.3.6", "forestr": "forestr 2.0.2", "ForestGapR": "ForestGapR 0.1.7",
-        "canopyLazR": "canopyLazR 2.0"}
-
-
 def write_table(df, name, title):
     df.to_csv(TAB / f"{name}.csv", index=False)
     md = [f"# {title}", "", "| " + " | ".join(df.columns) + " |", "|" + "---|" * len(df.columns)]
@@ -422,9 +381,8 @@ def write_table(df, name, title):
 
 
 def tables(res, cells, single, thr, mb):
-    t1 = pd.DataFrame([{"metric": m, "package": VERS[package(m)], "definition": DEFS.get(m, ""),
-                        "points used": POINTS[package(m)]} for m in LIDR + OTHER + CLZ])
-    write_table(t1, "table1_metrics", "Table 1. Metrics reproduced by lidarmetricpy")
+    import make_metrics_table          # table1_metrics: all 146 outputs, one row each
+    make_metrics_table.main()
     import json
     clips = [c for c in json.loads((VAL / "data/clips.json").read_text()) if c["n"] > 0]
     full = json.loads((VAL / "data/full.json").read_text())

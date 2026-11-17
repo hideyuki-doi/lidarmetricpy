@@ -131,6 +131,9 @@ each equal to the package applied to the points of one cell:
 | forestr 2.0.2 (`calc_enl` on the filled 1 m voxels of lidRmetrics) | enl |
 | ForestGapR 0.1.7 (`getForestGaps(chm, threshold = 10, size = c(1, 1e4))`; per-cell summary is ours) | gap_frac, gap_n, gap_area_mean |
 
+docs/tables/table1_metrics.md (and .csv) lists all 146 outputs (137 per cell, 9 canopyLazR rasters) one per row,
+with the package, function, definition and points used.
+
 canopyLazR 2.0 works on elevations and on its own grid, so it is a separate CPU function:
 
 ```python
