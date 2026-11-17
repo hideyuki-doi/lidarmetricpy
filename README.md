@@ -5,12 +5,25 @@
 > **AI coding assistants** (Claude Code, Codex, Cursor, …): read [AGENTS.md](AGENTS.md) before using or changing
 > this package. Humans may find it a useful checklist too.
 
-Per-cell forest structure metrics from airborne lidar point clouds on NVIDIA GPUs (CuPy or PyTorch), Apple
-Silicon GPUs (PyTorch MPS, float32) or any CPU (NumPy), with explicit memory budgets. With `Options.lidr()` the
-values equal those of **lidR 4.3.3 + lidRmetrics 0.1.5** for all 111 outputs of `metrics_set3` and the tree
-summaries listed below (and those of leafR, PyForestScan, forestr, ForestGapR and canopyLazR for their metrics), to
-floating-point rounding on every float64 backend. **List of all 146 outputs with their meaning:
-[docs/tables/table1_metrics.md](docs/tables/table1_metrics.md)** (also in "Metrics" below).
+lidarmetricpy computes forest-structure metrics for every cell of a grid (typically 25 m) from airborne lidar
+point clouds, on NVIDIA GPUs (CuPy or PyTorch) or any CPU (NumPy or PyTorch), within memory limits that you set.
+Apple Silicon GPUs (PyTorch MPS) are supported in float32 but have not yet been run on Apple hardware.
+
+It produces **146 outputs**:
+
+- **137 metrics per grid cell** (`compute_tile`, `compute_tiles`):
+  - all 111 outputs of `lidRmetrics::metrics_set3` (height distribution, cover, layers, L-moments, leaf area
+    density, return types, canopy roughness, voxels, density peaks);
+  - 9 tree summaries (number, heights and crown areas of the trees whose tops lie in the cell), computed from
+    lidR's tree tops and Dalponte crowns;
+  - 17 metrics defined by leafR (10), PyForestScan (3), forestr (1) and ForestGapR (3).
+- **9 canopyLazR rasters** (`canopylazr_file`, a separate CPU function on canopyLazR's own grid).
+
+With `Options.lidr()` each output equals the value of the package that defines it (lidR 4.3.3 + lidRmetrics
+0.1.5, leafR 0.3.5, PyForestScan 0.3.6, forestr 2.0.2, ForestGapR 0.1.7, canopyLazR 2.0), to floating-point
+rounding, on every float64 backend (canopyLazR runs on the CPU). For the tree and gap summaries, the tree tops, crowns and gaps are those of
+lidR and ForestGapR, and the per-cell summaries are defined by lidarmetricpy.
+**[List of all 146 outputs with their meaning](docs/tables/table1_metrics.md)**.
 
 ```python
 from lidarmetricpy import compute_tile, compute_tiles, Options
@@ -90,7 +103,13 @@ whose files overlap, `Options(closed_edges=False)` makes the grid half-open, [x0
 no point is counted twice. Tree detection uses the points inside the grid; lidR's `rasterize_canopy` uses
 every point of the file, which is the same when the file covers the grid.
 
-## Metrics (per grid cell)
+## Metrics
+
+The output table has `x`, `y` (cell centre) and `n_points` (all points of the cell) and then the 137 metrics
+below, in this order; canopyLazR's 9 rasters come from a separate function. The full list with a short meaning,
+the definition and the points used is at the end of this section.
+
+### lidRmetrics (111 columns)
 
 All 111 outputs of `lidRmetrics::metrics_set3(zmin = 0.5, threshold = c(2, 5, 10, 20, 30),
 zintervals = c(0, 0.5, 2, 5, 10, 20, 30), pixel_size = 1, vox_size = 1)`, with the same names, definitions and
@@ -117,10 +136,15 @@ lidRmetrics' own quirks are reproduced, not fixed: `n_return_k` counts the k-th 
 in the cell (metrics_echo2 converts the table's factor to its level codes), which equals the count of
 ReturnNumber == k only when return numbers 1..k all occur; `p_intermidiate` keeps its spelling.
 
+### Tree summaries (9 columns)
+
 Tree summaries per cell from the lidR workflow `rasterize_canopy(res = 0.5, p2r(0.15, knnidw()))` →
 `locate_trees(lmf(ws = 2.5 + 0.15 h, clamped 3–8 m, hmin = 5))` → `dalponte2016(th_tree = 2)`:
-tree_n, tree_h_mean / sd / cv / max / gini / shannon, crown_m2_mean / sd (the summaries are ours; tree tops
-and crowns equal lidR's).
+tree_n, tree_h_mean / sd / cv / max / gini / shannon, crown_m2_mean / sd. Tree tops and crowns equal lidR's; a
+tree belongs to the cell that contains its top, and the per-cell summaries are defined by lidarmetricpy
+(`Options(trees=True)`, the default).
+
+### Metrics of other packages (17 columns)
 
 Metrics defined by other packages (`Options(other_packages=True)`, the default; `enl` is always computed),
 each equal to the package applied to the points of one cell:
@@ -130,7 +154,18 @@ each equal to the package applied to the points of one cell:
 | leafR 0.3.5 (`lad.voxels(k = 1)` with the cell as one pixel → `lad.profile` → `lai`, `LAHV`, `FHD`, `GS`, `GC`) | leafr_lai, leafr_lahv, leafr_lahv_laiw, leafr_lahv_hw, leafr_lahv_laiw_hw, leafr_fhd, leafr_fhd_even, leafr_gs, leafr_gs_even, leafr_gc |
 | PyForestScan 0.3.6 (`assign_voxels(cell, cell, 1)` → `calculate_pad` → `calculate_pai(min 1 m)`, `calculate_canopy_cover(min 2 m, k = 0.5)`, `calculate_fhd`) | pfs_pai, pfs_cover, pfs_fhd |
 | forestr 2.0.2 (`calc_enl` on the filled 1 m voxels of lidRmetrics) | enl |
-| ForestGapR 0.1.7 (`getForestGaps(chm, threshold = 10, size = c(1, 1e4))`; per-cell summary is ours) | gap_frac, gap_n, gap_area_mean |
+| ForestGapR 0.1.7 (`getForestGaps(chm, threshold = 10, size = c(1, 1e4))`; per-cell summary by lidarmetricpy) | gap_frac, gap_n, gap_area_mean |
+
+### canopyLazR rasters (9, separate function)
+
+canopyLazR 2.0 works on elevations and on its own grid, so it is a separate CPU function:
+
+```python
+from lidarmetricpy import canopylazr_file
+r = canopylazr_file("raw_tile.laz", xy_res=10, z_res=1, ht_cut=5)   # DataFrame: x, y, clz_* rasters
+```
+
+### Full list
 
 [docs/tables/table1_metrics.md](docs/tables/table1_metrics.md) (and [.csv](docs/tables/table1_metrics.csv)) lists
 all 146 outputs (137 per cell, 9 canopyLazR rasters) one per row, with a short meaning, the package, function,
@@ -292,12 +327,7 @@ definition and points used.
 </details>
 <!-- metrics table: end -->
 
-canopyLazR 2.0 works on elevations and on its own grid, so it is a separate CPU function:
-
-```python
-from lidarmetricpy import canopylazr_file
-r = canopylazr_file("raw_tile.laz", xy_res=10, z_res=1, ht_cut=5)   # DataFrame: x, y, clz_* rasters
-```
+### Exactness
 
 Details reproduced from the R/C++ sources so that results match to floating-point rounding:
 C `round()` (halves away from zero) in `round_any` and in lidR's raster layouts (also the per-cell 1 m layout of

@@ -8,10 +8,13 @@ AI agents can misread data or documentation: the person who runs the analysis mu
 ## What the package does
 
 `compute_tile` turns one airborne lidar tile (LAS/LAZ, or arrays) into a table with one row per grid cell
-(usually 25 m) and a fixed set of forest-structure metrics. With `Options.lidr()` the values equal those of
-lidR 4.3.3 + lidRmetrics 0.1.5 (all 111 outputs of `metrics_set3`, plus 9 tree summaries) and of leafR,
-PyForestScan, forestr and ForestGapR, to floating-point rounding, on every float64 backend. `compute_tiles`
-runs many tiles in parallel worker processes. README.md documents every option; this file lists what agents
+(usually 25 m) and 137 forest-structure metrics: the 111 outputs of lidRmetrics `metrics_set3`, 9 tree
+summaries from lidR's tree tops and crowns, and 17 metrics of leafR, PyForestScan, forestr and ForestGapR.
+`canopylazr_file` gives 9 more rasters (canopyLazR) on its own grid. With `Options.lidr()` the values equal those
+of the original packages (lidR 4.3.3 + lidRmetrics 0.1.5 and the others; the per-cell tree and gap summaries are
+defined by lidarmetricpy from lidR's trees and ForestGapR's gaps), to floating-point rounding, on every float64
+backend. docs/tables/table1_metrics.md lists all 146 outputs. `compute_tiles` runs many tiles in parallel
+worker processes. README.md documents every option; this file lists what agents
 tend to get wrong.
 
 ## Minimal correct call
