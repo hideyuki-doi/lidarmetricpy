@@ -267,18 +267,18 @@ definition and points used.
 | 123 | pfs_pai | plant area index (leaves and wood) above 1 m | PyForestScan 0.3.6 |
 | 124 | pfs_cover | canopy cover above 2 m (0–1) | PyForestScan 0.3.6 |
 | 125 | pfs_fhd | foliage height diversity of the return profile | PyForestScan 0.3.6 |
-| 126 | tree_n | number of trees (tree tops ≥ 5 m) | lidR 4.3.3 |
-| 127 | tree_h_mean | average tree height | lidR 4.3.3 |
-| 128 | tree_h_sd | variation of tree heights | lidR 4.3.3 |
-| 129 | tree_h_cv | variation of tree heights relative to their mean | lidR 4.3.3 |
-| 130 | tree_h_max | tallest tree | lidR 4.3.3 |
-| 131 | tree_h_gini | inequality of tree heights (0 = all equal) | lidR 4.3.3 |
-| 132 | tree_h_shannon | diversity of tree heights | lidR 4.3.3 |
-| 133 | crown_m2_mean | average crown size (m²) | lidR 4.3.3 |
-| 134 | crown_m2_sd | variation of crown size | lidR 4.3.3 |
-| 135 | gap_frac | share of the cell in canopy gaps (canopy ≤ 10 m) | ForestGapR 0.1.7 |
-| 136 | gap_n | number of canopy gaps | ForestGapR 0.1.7 |
-| 137 | gap_area_mean | average size of those gaps (m²) | ForestGapR 0.1.7 |
+| 126 | tree_n | number of trees (tree tops ≥ 5 m) | lidR 4.3.3 (tree tops, crowns); per-cell summary: lidarmetricpy |
+| 127 | tree_h_mean | average tree height | lidR 4.3.3 (tree tops, crowns); per-cell summary: lidarmetricpy |
+| 128 | tree_h_sd | variation of tree heights | lidR 4.3.3 (tree tops, crowns); per-cell summary: lidarmetricpy |
+| 129 | tree_h_cv | variation of tree heights relative to their mean | lidR 4.3.3 (tree tops, crowns); per-cell summary: lidarmetricpy |
+| 130 | tree_h_max | tallest tree | lidR 4.3.3 (tree tops, crowns); per-cell summary: lidarmetricpy |
+| 131 | tree_h_gini | inequality of tree heights (0 = all equal) | lidR 4.3.3 (tree tops, crowns); per-cell summary: lidarmetricpy |
+| 132 | tree_h_shannon | diversity of tree heights | lidR 4.3.3 (tree tops, crowns); per-cell summary: lidarmetricpy |
+| 133 | crown_m2_mean | average crown size (m²) | lidR 4.3.3 (tree tops, crowns); per-cell summary: lidarmetricpy |
+| 134 | crown_m2_sd | variation of crown size | lidR 4.3.3 (tree tops, crowns); per-cell summary: lidarmetricpy |
+| 135 | gap_frac | share of the cell in canopy gaps (canopy ≤ 10 m) | ForestGapR 0.1.7 (gaps); per-cell summary: lidarmetricpy |
+| 136 | gap_n | number of canopy gaps | ForestGapR 0.1.7 (gaps); per-cell summary: lidarmetricpy |
+| 137 | gap_area_mean | average size of those gaps (m²) | ForestGapR 0.1.7 (gaps); per-cell summary: lidarmetricpy |
 | 138 | clz_chm | canopy height (from the raw elevations) | canopyLazR 2.0 |
 | 139 | clz_ground | ground elevation | canopyLazR 2.0 |
 | 140 | clz_vertical_sd_lad | how unevenly leaves are spread with height in the column | canopyLazR 2.0 |

@@ -167,7 +167,7 @@ def other_rows():
         "pfs_fhd": ("PyForestScan 0.3.6", "calculate_fhd", "foliage height diversity, Shannon entropy of the "
                     "return counts of the 1 m layers", PFS),
     }
-    tree = ("lidR 4.3.3 (summary defined here)", "rasterize_canopy → locate_trees(lmf) → dalponte2016")
+    tree = ("lidR 4.3.3 (tree tops, crowns); per-cell summary: lidarmetricpy", "rasterize_canopy → locate_trees(lmf) → dalponte2016")
     tops = ("tree tops (lmf: window 2.5 + 0.15 h m, 3–8 m; tops ≥ 5 m) on the " + CHM +
             "; a tree belongs to the cell that contains its top")
     crowns = "crowns of dalponte2016(th_tree = 2) grown from those tops on the same raster (pixels × 0.25 m²)"
@@ -182,7 +182,7 @@ def other_rows():
         "crown_m2_mean": (*tree, "mean crown area (m²)", crowns),
         "crown_m2_sd": (*tree, "standard deviation of crown area (m², n − 1)", crowns),
     })
-    gap = ("ForestGapR 0.1.7 (summary defined here)", "getForestGaps(chm, threshold = 10, size = c(1, 10^4))")
+    gap = ("ForestGapR 0.1.7 (gaps); per-cell summary: lidarmetricpy", "getForestGaps(chm, threshold = 10, size = c(1, 10^4))")
     gp = "gaps: connected areas of the canopy raster ≤ 10 m, 1 m² to 1 ha, found over the whole tile; " + CHM
     d.update({
         "gap_frac": (*gap, "share of the cell's canopy-raster pixels that lie in a gap", gp),
@@ -317,7 +317,7 @@ def readme_block(df):
     md = [BEGIN, "<details>", "<summary>All 146 outputs with a short meaning (click to open; definitions in "
           "<a href=\"docs/tables/table1_metrics.md\">docs/tables/table1_metrics.md</a>)</summary>", "",
           "| no | metric | meaning | package |", "|---|---|---|---|"]
-    md += [f"| {r.no} | {r.metric} | {r.meaning} | {r.package.split(' (')[0]} |" for r in df.itertuples()]
+    md += [f"| {r.no} | {r.metric} | {r.meaning} | {r.package} |" for r in df.itertuples()]
     md += ["", "</details>", END]
     return "\n".join(md)
 
