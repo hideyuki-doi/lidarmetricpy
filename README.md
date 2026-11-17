@@ -9,7 +9,8 @@ Per-cell forest structure metrics from airborne lidar point clouds on NVIDIA GPU
 Silicon GPUs (PyTorch MPS, float32) or any CPU (NumPy), with explicit memory budgets. With `Options.lidr()` the
 values equal those of **lidR 4.3.3 + lidRmetrics 0.1.5** for all 111 outputs of `metrics_set3` and the tree
 summaries listed below (and those of leafR, PyForestScan, forestr, ForestGapR and canopyLazR for their metrics), to
-floating-point rounding on every float64 backend.
+floating-point rounding on every float64 backend. **List of all 146 outputs with their meaning:
+[docs/tables/table1_metrics.md](docs/tables/table1_metrics.md)** (also in "Metrics" below).
 
 ```python
 from lidarmetricpy import compute_tile, compute_tiles, Options
@@ -131,8 +132,165 @@ each equal to the package applied to the points of one cell:
 | forestr 2.0.2 (`calc_enl` on the filled 1 m voxels of lidRmetrics) | enl |
 | ForestGapR 0.1.7 (`getForestGaps(chm, threshold = 10, size = c(1, 1e4))`; per-cell summary is ours) | gap_frac, gap_n, gap_area_mean |
 
-docs/tables/table1_metrics.md (and .csv) lists all 146 outputs (137 per cell, 9 canopyLazR rasters) one per row,
-with the package, function, definition and points used.
+[docs/tables/table1_metrics.md](docs/tables/table1_metrics.md) (and [.csv](docs/tables/table1_metrics.csv)) lists
+all 146 outputs (137 per cell, 9 canopyLazR rasters) one per row, with a short meaning, the package, function,
+definition and points used.
+
+<!-- metrics table: begin (docs/make_metrics_table.py) -->
+<details>
+<summary>All 146 outputs with a short meaning (click to open; definitions in <a href="docs/tables/table1_metrics.md">docs/tables/table1_metrics.md</a>)</summary>
+
+| no | metric | meaning | package |
+|---|---|---|---|
+| 1 | n | how many returns lie above 0.5 m (vegetation returns) | lidRmetrics 0.1.5 |
+| 2 | zmax | top height of the vegetation | lidRmetrics 0.1.5 |
+| 3 | zmin | lowest vegetation return above 0.5 m | lidRmetrics 0.1.5 |
+| 4 | zmean | average height of the vegetation returns | lidRmetrics 0.1.5 |
+| 5 | zvar | spread of return heights (variance) | lidRmetrics 0.1.5 |
+| 6 | zsd | spread of return heights | lidRmetrics 0.1.5 |
+| 7 | zcv | spread of return heights relative to their mean | lidRmetrics 0.1.5 |
+| 8 | zskew | whether returns are concentrated low (positive) or high (negative) in the canopy | lidRmetrics 0.1.5 |
+| 9 | zkurt | how peaked the height distribution is (3 = normal) | lidRmetrics 0.1.5 |
+| 10 | zq1 | height below which 1 % of the returns lie | lidRmetrics 0.1.5 |
+| 11 | zq5 | height below which 5 % of the returns lie | lidRmetrics 0.1.5 |
+| 12 | zq10 | height below which 10 % of the returns lie | lidRmetrics 0.1.5 |
+| 13 | zq15 | height below which 15 % of the returns lie | lidRmetrics 0.1.5 |
+| 14 | zq20 | height below which 20 % of the returns lie | lidRmetrics 0.1.5 |
+| 15 | zq25 | height below which 25 % of the returns lie | lidRmetrics 0.1.5 |
+| 16 | zq30 | height below which 30 % of the returns lie | lidRmetrics 0.1.5 |
+| 17 | zq35 | height below which 35 % of the returns lie | lidRmetrics 0.1.5 |
+| 18 | zq40 | height below which 40 % of the returns lie | lidRmetrics 0.1.5 |
+| 19 | zq45 | height below which 45 % of the returns lie | lidRmetrics 0.1.5 |
+| 20 | zq50 | height below which 50 % of the returns lie (median height) | lidRmetrics 0.1.5 |
+| 21 | zq55 | height below which 55 % of the returns lie | lidRmetrics 0.1.5 |
+| 22 | zq60 | height below which 60 % of the returns lie | lidRmetrics 0.1.5 |
+| 23 | zq65 | height below which 65 % of the returns lie | lidRmetrics 0.1.5 |
+| 24 | zq70 | height below which 70 % of the returns lie | lidRmetrics 0.1.5 |
+| 25 | zq75 | height below which 75 % of the returns lie | lidRmetrics 0.1.5 |
+| 26 | zq80 | height below which 80 % of the returns lie | lidRmetrics 0.1.5 |
+| 27 | zq85 | height below which 85 % of the returns lie | lidRmetrics 0.1.5 |
+| 28 | zq90 | height below which 90 % of the returns lie | lidRmetrics 0.1.5 |
+| 29 | zq95 | height below which 95 % of the returns lie (≈ top height) | lidRmetrics 0.1.5 |
+| 30 | zq99 | height below which 99 % of the returns lie (≈ top height) | lidRmetrics 0.1.5 |
+| 31 | pzabovemean | share of returns above the average height | lidRmetrics 0.1.5 |
+| 32 | pzabove2 | share of returns above 2 m (canopy cover above 2 m) | lidRmetrics 0.1.5 |
+| 33 | pzabove5 | share of returns above 5 m (canopy cover above 5 m) | lidRmetrics 0.1.5 |
+| 34 | pzabove10 | share of returns above 10 m (canopy cover above 10 m) | lidRmetrics 0.1.5 |
+| 35 | pzabove20 | share of returns above 20 m (canopy cover above 20 m) | lidRmetrics 0.1.5 |
+| 36 | pzabove30 | share of returns above 30 m (canopy cover above 30 m) | lidRmetrics 0.1.5 |
+| 37 | ziqr | height range of the middle half of the returns | lidRmetrics 0.1.5 |
+| 38 | zMADmean | average distance of return heights from their mean | lidRmetrics 0.1.5 |
+| 39 | zMADmedian | typical distance of return heights from their median (robust spread) | lidRmetrics 0.1.5 |
+| 40 | CRR | where the mean height lies between lowest and highest return (0 = low, 1 = top); canopy shape | lidRmetrics 0.1.5 |
+| 41 | zentropy | how evenly returns spread over 1 m layers (0 = one layer, 1 = all layers equal) | lidRmetrics 0.1.5 |
+| 42 | zpcum1 | share of returns in the lower 10 % of the height range (profile shape) | lidRmetrics 0.1.5 |
+| 43 | zpcum2 | share of returns in the lower 20 % of the height range (profile shape) | lidRmetrics 0.1.5 |
+| 44 | zpcum3 | share of returns in the lower 30 % of the height range (profile shape) | lidRmetrics 0.1.5 |
+| 45 | zpcum4 | share of returns in the lower 40 % of the height range (profile shape) | lidRmetrics 0.1.5 |
+| 46 | zpcum5 | share of returns in the lower 50 % of the height range (profile shape) | lidRmetrics 0.1.5 |
+| 47 | zpcum6 | share of returns in the lower 60 % of the height range (profile shape) | lidRmetrics 0.1.5 |
+| 48 | zpcum7 | share of returns in the lower 70 % of the height range (profile shape) | lidRmetrics 0.1.5 |
+| 49 | zpcum8 | share of returns in the lower 80 % of the height range (profile shape) | lidRmetrics 0.1.5 |
+| 50 | zpcum9 | share of returns in the lower 90 % of the height range (profile shape) | lidRmetrics 0.1.5 |
+| 51 | L1 | mean height (robust moment) | lidRmetrics 0.1.5 |
+| 52 | L2 | spread of heights (robust moment) | lidRmetrics 0.1.5 |
+| 53 | L3 | asymmetry of heights (robust moment, unscaled) | lidRmetrics 0.1.5 |
+| 54 | L4 | peakedness of heights (robust moment, unscaled) | lidRmetrics 0.1.5 |
+| 55 | Lskew | asymmetry of the height distribution (robust) | lidRmetrics 0.1.5 |
+| 56 | Lkurt | peakedness of the height distribution (robust) | lidRmetrics 0.1.5 |
+| 57 | Lcoefvar | spread of heights relative to the mean (robust) | lidRmetrics 0.1.5 |
+| 58 | lad_min | leaf area density of the sparsest 1 m layer | lidRmetrics 0.1.5 |
+| 59 | lad_max | leaf area density of the densest 1 m layer | lidRmetrics 0.1.5 |
+| 60 | lad_mean | average leaf area density over the layers | lidRmetrics 0.1.5 |
+| 61 | lad_cv | how unequal leaf area is among layers | lidRmetrics 0.1.5 |
+| 62 | lad_sum | total leaf area over the layers (an LAI-like value) | lidRmetrics 0.1.5 |
+| 63 | pz_below_0 | share of returns below ground (0 here because only returns above 0.5 m are used) | lidRmetrics 0.1.5 |
+| 64 | pz_0-0.5 | share of returns between 0 and 0.5 m | lidRmetrics 0.1.5 |
+| 65 | pz_0.5-2 | share of returns between 0.5 and 2 m | lidRmetrics 0.1.5 |
+| 66 | pz_2-5 | share of returns between 2 and 5 m | lidRmetrics 0.1.5 |
+| 67 | pz_5-10 | share of returns between 5 and 10 m | lidRmetrics 0.1.5 |
+| 68 | pz_10-20 | share of returns between 10 and 20 m | lidRmetrics 0.1.5 |
+| 69 | pz_20-30 | share of returns between 20 and 30 m | lidRmetrics 0.1.5 |
+| 70 | pz_above_30 | share of returns in the very tall canopy (30 m and above) | lidRmetrics 0.1.5 |
+| 71 | n_first | number of first returns (pulses that hit something) | lidRmetrics 0.1.5 |
+| 72 | n_intermediate | number of returns between first and last of a pulse (passed through the canopy) | lidRmetrics 0.1.5 |
+| 73 | n_last | number of last returns of pulses with several returns | lidRmetrics 0.1.5 |
+| 74 | n_single | number of returns from pulses with one return (solid surfaces, dense crowns) | lidRmetrics 0.1.5 |
+| 75 | n_multiple | number of returns from pulses with several returns (penetrable canopy) | lidRmetrics 0.1.5 |
+| 76 | p_first | share of first returns | lidRmetrics 0.1.5 |
+| 77 | p_intermidiate | share of intermediate returns | lidRmetrics 0.1.5 |
+| 78 | p_last | share of last returns | lidRmetrics 0.1.5 |
+| 79 | p_single | share of single-return pulses' returns | lidRmetrics 0.1.5 |
+| 80 | p_multiple | share of multiple-return pulses' returns | lidRmetrics 0.1.5 |
+| 81 | ratio_last_first | last per first returns; higher where pulses pass through the canopy | lidRmetrics 0.1.5 |
+| 82 | ratio_intermediate_first | intermediate per first returns; higher in deep, layered canopies | lidRmetrics 0.1.5 |
+| 83 | ratio_multiple_single | multiple- per single-return returns; canopy penetrability | lidRmetrics 0.1.5 |
+| 84 | n_return_1 | number of returns with return number 1 | lidRmetrics 0.1.5 |
+| 85 | n_return_2 | number of returns with return number 2 | lidRmetrics 0.1.5 |
+| 86 | n_return_3 | number of returns with return number 3 | lidRmetrics 0.1.5 |
+| 87 | n_return_4 | number of returns with return number 4 | lidRmetrics 0.1.5 |
+| 88 | rumple | roughness of the canopy surface (1 = flat; larger = more uneven) | lidRmetrics 0.1.5 |
+| 89 | vn | number of occupied 1 m cubes (volume filled by vegetation) | lidRmetrics 0.1.5 |
+| 90 | vFRall | share of the occupied cubes in the box around the vegetation | lidRmetrics 0.1.5 |
+| 91 | vFRcanopy | share of space below the canopy top that is occupied | lidRmetrics 0.1.5 |
+| 92 | vzrumple | complexity of the vertical profile of occupied cubes | lidRmetrics 0.1.5 |
+| 93 | vzsd | unevenness of the vertical profile of occupied cubes | lidRmetrics 0.1.5 |
+| 94 | vzcv | unevenness of the vertical profile of occupied cubes, relative | lidRmetrics 0.1.5 |
+| 95 | OpenGapSpace | empty space above the canopy surface (between crowns) | lidRmetrics 0.1.5 |
+| 96 | ClosedGapSpace | empty space inside or below the canopy | lidRmetrics 0.1.5 |
+| 97 | Euphotic | occupied space in the upper, sunlit part of the canopy | lidRmetrics 0.1.5 |
+| 98 | Oligophotic | occupied space in the lower, shaded part of the canopy | lidRmetrics 0.1.5 |
+| 99 | kde_peaks_count | number of vegetation layers (peaks of the height distribution) | lidRmetrics 0.1.5 |
+| 100 | kde_peak1_elev | height of vegetation layer 1, counted from the top | lidRmetrics 0.1.5 |
+| 101 | kde_peak2_elev | height of vegetation layer 2, counted from the top | lidRmetrics 0.1.5 |
+| 102 | kde_peak3_elev | height of vegetation layer 3, counted from the top | lidRmetrics 0.1.5 |
+| 103 | kde_peak4_elev | height of vegetation layer 4, counted from the top | lidRmetrics 0.1.5 |
+| 104 | kde_peak1_value | how strong vegetation layer 1 is | lidRmetrics 0.1.5 |
+| 105 | kde_peak2_value | how strong vegetation layer 2 is | lidRmetrics 0.1.5 |
+| 106 | kde_peak3_value | how strong vegetation layer 3 is | lidRmetrics 0.1.5 |
+| 107 | kde_peak4_value | how strong vegetation layer 4 is | lidRmetrics 0.1.5 |
+| 108 | kde_peak1_diff | vertical distance between layers 1 and 2 | lidRmetrics 0.1.5 |
+| 109 | kde_peak2_diff | vertical distance between layers 2 and 3 | lidRmetrics 0.1.5 |
+| 110 | kde_peak3_diff | vertical distance between layers 3 and 4 | lidRmetrics 0.1.5 |
+| 111 | HOME | height that splits the returned energy in half; higher for top-heavy canopies | lidRmetrics 0.1.5 |
+| 112 | enl | effective number of vegetation layers | forestr 2.0.2 |
+| 113 | leafr_lai | leaf area index (leaf area per ground area) | leafR 0.3.5 |
+| 114 | leafr_lahv | leaf area weighted by height (amount and height of foliage together) | leafR 0.3.5 |
+| 115 | leafr_lahv_laiw | average height of the leaf area | leafR 0.3.5 |
+| 116 | leafr_lahv_hw | LAHV relative to stand height | leafR 0.3.5 |
+| 117 | leafr_lahv_laiw_hw | average height of the leaf area relative to stand height | leafR 0.3.5 |
+| 118 | leafr_fhd | foliage height diversity: how evenly leaves spread over layers | leafR 0.3.5 |
+| 119 | leafr_fhd_even | foliage height diversity scaled to 0–1 | leafR 0.3.5 |
+| 120 | leafr_gs | diversity of the leaf profile (Gini–Simpson) | leafR 0.3.5 |
+| 121 | leafr_gs_even | Gini–Simpson diversity scaled to 0–1 | leafR 0.3.5 |
+| 122 | leafr_gc | inequality of return heights above 1 m (0 = all equal) | leafR 0.3.5 |
+| 123 | pfs_pai | plant area index (leaves and wood) above 1 m | PyForestScan 0.3.6 |
+| 124 | pfs_cover | canopy cover above 2 m (0–1) | PyForestScan 0.3.6 |
+| 125 | pfs_fhd | foliage height diversity of the return profile | PyForestScan 0.3.6 |
+| 126 | tree_n | number of trees (tree tops ≥ 5 m) | lidR 4.3.3 |
+| 127 | tree_h_mean | average tree height | lidR 4.3.3 |
+| 128 | tree_h_sd | variation of tree heights | lidR 4.3.3 |
+| 129 | tree_h_cv | variation of tree heights relative to their mean | lidR 4.3.3 |
+| 130 | tree_h_max | tallest tree | lidR 4.3.3 |
+| 131 | tree_h_gini | inequality of tree heights (0 = all equal) | lidR 4.3.3 |
+| 132 | tree_h_shannon | diversity of tree heights | lidR 4.3.3 |
+| 133 | crown_m2_mean | average crown size (m²) | lidR 4.3.3 |
+| 134 | crown_m2_sd | variation of crown size | lidR 4.3.3 |
+| 135 | gap_frac | share of the cell in canopy gaps (canopy ≤ 10 m) | ForestGapR 0.1.7 |
+| 136 | gap_n | number of canopy gaps | ForestGapR 0.1.7 |
+| 137 | gap_area_mean | average size of those gaps (m²) | ForestGapR 0.1.7 |
+| 138 | clz_chm | canopy height (from the raw elevations) | canopyLazR 2.0 |
+| 139 | clz_ground | ground elevation | canopyLazR 2.0 |
+| 140 | clz_vertical_sd_lad | how unevenly leaves are spread with height in the column | canopyLazR 2.0 |
+| 141 | clz_rugosity | within-canopy roughness: how much the vertical leaf structure changes between neighbours | canopyLazR 2.0 |
+| 142 | clz_filled_ratio | share of canopy space filled with leaves | canopyLazR 2.0 |
+| 143 | clz_porosity_ratio | share of canopy space that is empty (porosity) | canopyLazR 2.0 |
+| 144 | clz_max_lad | leaf density of the densest layer | canopyLazR 2.0 |
+| 145 | clz_max_lad_ht | height of the densest leaf layer | canopyLazR 2.0 |
+| 146 | clz_toc_rugosity | roughness of the canopy top: how far the surface lies below its highest neighbour | canopyLazR 2.0 |
+
+</details>
+<!-- metrics table: end -->
 
 canopyLazR 2.0 works on elevations and on its own grid, so it is a separate CPU function:
 

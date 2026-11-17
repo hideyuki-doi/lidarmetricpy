@@ -1,8 +1,9 @@
 """docs/tables/table1_metrics.{csv,md}: every output of lidarmetricpy, one row each.
 
 The 137 per-cell metrics of compute_tile (column order of lidarmetricpy.api.output_columns) and the 9 rasters
-of canopylazr_file, with the package that defines them, the definition and the points used. Settings are those
-of the package defaults (the lidR workflow of the README). Run from the repository root:
+of canopylazr_file, with a short meaning, the package that defines them, the definition and the points used.
+The same list with the short meanings is written into README.md between the "metrics table" markers. Settings
+are those of the package defaults (the lidR workflow of the README). Run from the repository root:
 
     python docs/make_metrics_table.py
 """
@@ -209,6 +210,118 @@ def clz_rows():
     return {k: ("canopyLazR 2.0", fn, v, CLZP) for k, v in d.items()}
 
 
+MEANING = {
+    "n": "how many returns lie above 0.5 m (vegetation returns)",
+    "zmax": "top height of the vegetation", "zmin": "lowest vegetation return above 0.5 m",
+    "zmean": "average height of the vegetation returns", "zvar": "spread of return heights (variance)",
+    "zsd": "spread of return heights", "zcv": "spread of return heights relative to their mean",
+    "zskew": "whether returns are concentrated low (positive) or high (negative) in the canopy",
+    "zkurt": "how peaked the height distribution is (3 = normal)",
+    "pzabovemean": "share of returns above the average height",
+    "ziqr": "height range of the middle half of the returns",
+    "zMADmean": "average distance of return heights from their mean",
+    "zMADmedian": "typical distance of return heights from their median (robust spread)",
+    "CRR": "where the mean height lies between lowest and highest return (0 = low, 1 = top); canopy shape",
+    "zentropy": "how evenly returns spread over 1 m layers (0 = one layer, 1 = all layers equal)",
+    "L1": "mean height (robust moment)", "L2": "spread of heights (robust moment)",
+    "L3": "asymmetry of heights (robust moment, unscaled)", "L4": "peakedness of heights (robust moment, unscaled)",
+    "Lskew": "asymmetry of the height distribution (robust)", "Lkurt": "peakedness of the height distribution (robust)",
+    "Lcoefvar": "spread of heights relative to the mean (robust)",
+    "lad_min": "leaf area density of the sparsest 1 m layer", "lad_max": "leaf area density of the densest 1 m layer",
+    "lad_mean": "average leaf area density over the layers", "lad_cv": "how unequal leaf area is among layers",
+    "lad_sum": "total leaf area over the layers (an LAI-like value)",
+    "pz_below_0": "share of returns below ground (0 here because only returns above 0.5 m are used)",
+    "pz_above_30": "share of returns in the very tall canopy (30 m and above)",
+    "n_first": "number of first returns (pulses that hit something)",
+    "n_intermediate": "number of returns between first and last of a pulse (passed through the canopy)",
+    "n_last": "number of last returns of pulses with several returns",
+    "n_single": "number of returns from pulses with one return (solid surfaces, dense crowns)",
+    "n_multiple": "number of returns from pulses with several returns (penetrable canopy)",
+    "p_first": "share of first returns", "p_intermidiate": "share of intermediate returns",
+    "p_last": "share of last returns", "p_single": "share of single-return pulses' returns",
+    "p_multiple": "share of multiple-return pulses' returns",
+    "ratio_last_first": "last per first returns; higher where pulses pass through the canopy",
+    "ratio_intermediate_first": "intermediate per first returns; higher in deep, layered canopies",
+    "ratio_multiple_single": "multiple- per single-return returns; canopy penetrability",
+    "rumple": "roughness of the canopy surface (1 = flat; larger = more uneven)",
+    "vn": "number of occupied 1 m cubes (volume filled by vegetation)",
+    "vFRall": "share of the occupied cubes in the box around the vegetation",
+    "vFRcanopy": "share of space below the canopy top that is occupied",
+    "vzrumple": "complexity of the vertical profile of occupied cubes",
+    "vzsd": "unevenness of the vertical profile of occupied cubes",
+    "vzcv": "unevenness of the vertical profile of occupied cubes, relative",
+    "OpenGapSpace": "empty space above the canopy surface (between crowns)",
+    "ClosedGapSpace": "empty space inside or below the canopy",
+    "Euphotic": "occupied space in the upper, sunlit part of the canopy",
+    "Oligophotic": "occupied space in the lower, shaded part of the canopy",
+    "kde_peaks_count": "number of vegetation layers (peaks of the height distribution)",
+    "HOME": "height that splits the returned energy in half; higher for top-heavy canopies",
+    "enl": "effective number of vegetation layers",
+    "leafr_lai": "leaf area index (leaf area per ground area)",
+    "leafr_lahv": "leaf area weighted by height (amount and height of foliage together)",
+    "leafr_lahv_laiw": "average height of the leaf area", "leafr_lahv_hw": "LAHV relative to stand height",
+    "leafr_lahv_laiw_hw": "average height of the leaf area relative to stand height",
+    "leafr_fhd": "foliage height diversity: how evenly leaves spread over layers",
+    "leafr_fhd_even": "foliage height diversity scaled to 0–1",
+    "leafr_gs": "diversity of the leaf profile (Gini–Simpson)", "leafr_gs_even": "Gini–Simpson diversity scaled to 0–1",
+    "leafr_gc": "inequality of return heights above 1 m (0 = all equal)",
+    "pfs_pai": "plant area index (leaves and wood) above 1 m", "pfs_cover": "canopy cover above 2 m (0–1)",
+    "pfs_fhd": "foliage height diversity of the return profile",
+    "tree_n": "number of trees (tree tops ≥ 5 m)", "tree_h_mean": "average tree height",
+    "tree_h_sd": "variation of tree heights", "tree_h_cv": "variation of tree heights relative to their mean",
+    "tree_h_max": "tallest tree", "tree_h_gini": "inequality of tree heights (0 = all equal)",
+    "tree_h_shannon": "diversity of tree heights", "crown_m2_mean": "average crown size (m²)",
+    "crown_m2_sd": "variation of crown size",
+    "gap_frac": "share of the cell in canopy gaps (canopy ≤ 10 m)", "gap_n": "number of canopy gaps",
+    "gap_area_mean": "average size of those gaps (m²)",
+    "clz_chm": "canopy height (from the raw elevations)", "clz_ground": "ground elevation",
+    "clz_vertical_sd_lad": "how unevenly leaves are spread with height in the column",
+    "clz_rugosity": "within-canopy roughness: how much the vertical leaf structure changes between neighbours",
+    "clz_filled_ratio": "share of canopy space filled with leaves",
+    "clz_porosity_ratio": "share of canopy space that is empty (porosity)",
+    "clz_max_lad": "leaf density of the densest layer", "clz_max_lad_ht": "height of the densest leaf layer",
+    "clz_toc_rugosity": "roughness of the canopy top: how far the surface lies below its highest neighbour",
+}
+
+
+def meaning(m):
+    if m in MEANING:
+        return MEANING[m]
+    if m.startswith("zq"):
+        return f"height below which {m[2:]} % of the returns lie" + (" (≈ top height)" if m in ("zq95", "zq99")
+                                                                      else " (median height)" if m == "zq50" else "")
+    if m.startswith("pzabove"):
+        return f"share of returns above {m[7:]} m (canopy cover above {m[7:]} m)"
+    if m.startswith("zpcum"):
+        return f"share of returns in the lower {m[5:]}0 % of the height range (profile shape)"
+    if m.startswith("pz_"):
+        a, b = m[3:].split("-")
+        return f"share of returns between {a} and {b} m"
+    if m.startswith("n_return_"):
+        return f"number of returns with return number {m[-1]}"
+    k = m[8]
+    if m.endswith("_elev"):
+        return f"height of vegetation layer {k}, counted from the top"
+    if m.endswith("_value"):
+        return f"how strong vegetation layer {k} is"
+    if m.endswith("_diff"):
+        return f"vertical distance between layers {k} and {int(k) + 1}"
+    raise KeyError(m)
+
+
+README = ROOT / "README.md"
+BEGIN, END = "<!-- metrics table: begin (docs/make_metrics_table.py) -->", "<!-- metrics table: end -->"
+
+
+def readme_block(df):
+    md = [BEGIN, "<details>", "<summary>All 146 outputs with a short meaning (click to open; definitions in "
+          "<a href=\"docs/tables/table1_metrics.md\">docs/tables/table1_metrics.md</a>)</summary>", "",
+          "| no | metric | meaning | package |", "|---|---|---|---|"]
+    md += [f"| {r.no} | {r.metric} | {r.meaning} | {r.package.split(' (')[0]} |" for r in df.itertuples()]
+    md += ["", "</details>", END]
+    return "\n".join(md)
+
+
 def main():
     cols = [c for c in output_columns(Options()) if c not in ("x", "y", "n_points")]
     rows = {**lidrmetrics_rows(), **other_rows()}
@@ -219,7 +332,8 @@ def main():
     out = []
     for i, c in enumerate(cols + CLZ, 1):
         pkg, fn, d, pts = (rows | clz)[c]
-        out.append({"no": i, "metric": c, "output": "per cell" if c in rows else "raster (canopylazr_file)",
+        out.append({"no": i, "metric": c, "meaning": meaning(c),
+                    "output": "per cell" if c in rows else "raster (canopylazr_file)",
                     "package": pkg, "function": fn, "definition": d, "points used": pts})
     df = pd.DataFrame(out)
     assert len(df) == 146 and df.metric.is_unique
@@ -234,6 +348,9 @@ def main():
           "| " + " | ".join(df.columns) + " |", "|" + "---|" * len(df.columns)]
     md += ["| " + " | ".join(str(v).replace("|", "\\|") for v in r) + " |" for r in df.itertuples(index=False)]
     (TAB / "table1_metrics.md").write_text("\n".join(md) + "\n")
+    text = README.read_text()
+    i, j = text.index(BEGIN), text.index(END) + len(END)
+    README.write_text(text[:i] + readme_block(df) + text[j:])
     print(df.package.value_counts().to_string())
 
 
