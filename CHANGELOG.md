@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.0.1 (2026-11-22)
+
+No change to the metric code; values are identical to 1.0.0. Documentation and validation files only:
+
+- validation/: the four Kanagawa clips thinned to 2, 5 and 10 points per m² (make_thin.py, reference values of the
+  R and Python packages in ref_thin/): all 137 metrics and all trees equal on every backend; single precision on
+  the two full tiles; density_sensitivity.py and .csv (change of each metric when the same cells are thinned)
+- docs/tables/table1_metrics.{csv,md} (docs/make_metrics_table.py): all 146 outputs, one per row, with a short
+  meaning, the package and function, the definition and the points used; the same list in the README
+- README, AGENTS.md and the package description describe the 146 outputs and which parts are defined by
+  lidarmetricpy (the per-cell tree and gap summaries); Apple MPS marked as not yet run on Apple hardware
+- plainer labels in the workflow, throughput and memory figures; 23 oracle cases in the README
+
 ## 1.0.0 (2026-11-10)
 
 First stable release; the metric code is that of 0.4.0 (all 111 metrics_set3 outputs, float32 exact mode).

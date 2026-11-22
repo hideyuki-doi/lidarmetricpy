@@ -1,18 +1,21 @@
 cff-version: 1.2.0
 message: "If you use lidarmetricpy, please cite it as below."
-title: "lidarmetricpy: forest-structure metrics from LiDAR at landscape scale"
+title: "lidarmetricpy: GPU computation of lidR-compatible forest-structure metrics from airborne LiDAR"
 type: software
 authors:
   - family-names: Doi
     given-names: Hideyuki
     affiliation: "Graduate School of Informatics, Kyoto University"
-version: 1.0.0
-doi: 10.5281/zenodo.24111786
+version: 1.0.1
+doi: 10.5281/zenodo.24111785
 identifiers:
   - type: doi
     value: 10.5281/zenodo.24111785
-    description: "All versions (concept DOI)"
-date-released: 2026-11-10
+    description: "All versions (concept DOI; resolves to the latest version)"
+  - type: doi
+    value: 10.5281/zenodo.24111786
+    description: "Version 1.0.0"
+date-released: 2026-11-22
 license: GPL-3.0-or-later
 repository-code: "https://github.com/hideyuki-doi/lidarmetricpy"
 keywords: [lidar, forest structure, point cloud, lidR, lidRmetrics, GPU]

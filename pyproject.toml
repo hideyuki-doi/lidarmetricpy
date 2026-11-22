@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lidarmetricpy"
-version = "1.0.0"
+version = "1.0.1"
 description = "146 forest-structure metrics from airborne lidar on GPU or CPU, equal to lidR/lidRmetrics, leafR, PyForestScan, forestr, ForestGapR and canopyLazR"
 authors = [{ name = "Hideyuki Doi" }]
 keywords = ["lidar", "forest", "point cloud", "lidR", "GPU"]

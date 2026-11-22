@@ -450,6 +450,7 @@ of lidR (GPL-3, Jean-Romain Roussel). Metric definitions follow lidRmetrics (Tom
 
 See CITATION.cff; each GitHub release is archived at Zenodo with its own DOI.
 
+- version 1.0.1: see the Zenodo record of the concept DOI below (no change to the metric code)
 - version 1.0.0: https://doi.org/10.5281/zenodo.24111786
 - all versions (resolves to the latest): https://doi.org/10.5281/zenodo.24111785
 
